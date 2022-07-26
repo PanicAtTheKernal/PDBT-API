@@ -10,7 +10,9 @@ MariaDbServerVersion serverVersion = new MariaDbServerVersion(new Version(10,5))
 
 builder.Services.AddControllers();
 builder.Services.AddDbContext<PdbtContext>(opt => opt
-    .UseMySql(builder.Configuration.GetConnectionString("PDBT"), serverVersion));
+    .UseMySql(builder.Configuration.GetConnectionString("PDBT"), serverVersion)
+    .UseValidationCheckConstraints()
+    .UseEnumCheckConstraints());
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
