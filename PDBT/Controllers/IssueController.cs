@@ -25,29 +25,42 @@ namespace PDBT.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Issue>>> GetIssues()
         {
-          if (_context.Issues == null)
-          {
-              return NotFound();
-          }
+            if (_context.Issues == null)
+            {
+                return NotFound();
+            }
             return await _context.Issues.ToListAsync();
         }
 
         // GET: api/Issue/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Issue>> GetIssue(int id)
+        public async Task<ActionResult<IssueDTO>> GetIssue(int id)
         {
-          if (_context.Issues == null)
-          {
-              return NotFound();
-          }
             var issue = await _context.Issues.FindAsync(id);
-
+            
             if (issue == null)
             {
                 return NotFound();
             }
 
-            return issue;
+            //Convert to DTO so we can attach the list of labels to it
+            var issueDto = IssueToDto(issue);
+            
+            //Retrieve a list of the labels associated with the issue
+            var labelsDetails = await _context.LabelDetails.Where(ld => ld.IssueId.Equals(issue.Id))
+                .ToListAsync();
+            ICollection<Label> issueLabels = new List<Label>();
+            
+            foreach (var ld in labelsDetails)
+            {
+                var label = await _context.Labels.FindAsync(ld.LabelId);
+                if (label != null)
+                    issueLabels.Add(label);
+            }
+
+            issueDto.Labels = issueLabels;
+
+            return issueDto;
         }
 
         // PUT: api/Issue/5
@@ -132,6 +145,18 @@ namespace PDBT.Controllers
             return NoContent();
         }
 
+        private IssueDTO IssueToDto(Issue issue) =>
+            new IssueDTO()
+            {
+                Id = issue.Id,
+                IssueName = issue.IssueName,
+                Description = issue.Description,
+                Type = issue.Type,
+                Priority = issue.Priority,
+                DueDate = issue.DueDate,
+                TimeForCompletion = issue.TimeForCompletion
+            };
+        
         private bool IssueExists(int id)
         {
             return (_context.Issues?.Any(e => e.Id == id)).GetValueOrDefault();
