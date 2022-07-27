@@ -60,18 +60,28 @@ namespace PDBT.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int?>("IssueId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("longtext");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IssueId");
-
                     b.ToTable("Labels");
+                });
+
+            modelBuilder.Entity("PDBT.Models.LabelDetail", b =>
+                {
+                    b.Property<int>("IssueId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LabelId")
+                        .HasColumnType("int");
+
+                    b.HasKey("IssueId", "LabelId");
+
+                    b.HasIndex("LabelId");
+
+                    b.ToTable("LabelDetail");
                 });
 
             modelBuilder.Entity("PDBT.Models.LinkedIssue", b =>
@@ -95,11 +105,23 @@ namespace PDBT.Migrations
                     b.HasCheckConstraint("CK_LinkedIssues_Reason_Enum", "`Reason` IN (0, 1, 2)");
                 });
 
-            modelBuilder.Entity("PDBT.Models.Label", b =>
+            modelBuilder.Entity("PDBT.Models.LabelDetail", b =>
                 {
-                    b.HasOne("PDBT.Models.Issue", null)
+                    b.HasOne("PDBT.Models.Issue", "Issue")
                         .WithMany("Labels")
-                        .HasForeignKey("IssueId");
+                        .HasForeignKey("IssueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PDBT.Models.Label", "Label")
+                        .WithMany()
+                        .HasForeignKey("LabelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Issue");
+
+                    b.Navigation("Label");
                 });
 
             modelBuilder.Entity("PDBT.Models.LinkedIssue", b =>

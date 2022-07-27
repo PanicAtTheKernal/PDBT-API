@@ -90,10 +90,26 @@ namespace PDBT.Controllers
           {
               return Problem("Entity set 'PdbtContext.Issues'  is null.");
           }
-            _context.Issues.Add(issue);
-            await _context.SaveChangesAsync();
+          
+          _context.Issues.Add(issue);
+          try
+          {
+              if (issue.Labels != null)
+                  foreach (LabelDetail lb in issue.Labels)
+                  {
+                      _context.LabelDetails.Add(lb);
+                  }
 
-            return CreatedAtAction("GetIssue", new { id = issue.Id }, issue);
+          }
+          catch (Exception e)
+          {
+              Console.WriteLine(e);
+              throw;
+          }
+
+          await _context.SaveChangesAsync();
+
+          return CreatedAtAction("GetIssue", new { id = issue.Id }, issue);
         }
 
         // DELETE: api/Issue/5

@@ -10,7 +10,7 @@ public class Issue
     public DateTime? TimeForCompletion { get; set; }
     public DateTime? DueDate { get; set; }
     public ICollection<LinkedIssue>? LinkedIssues { get; set; }
-    public ICollection<Label>? Labels { get; set; }
+    public ICollection<LabelDetail>? Labels { get; set; }
 }
 
 public enum IssuePriority
