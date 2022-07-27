@@ -141,6 +141,10 @@ namespace PDBT.Controllers
                 return NotFound();
             }
 
+            var lb = await _context.LabelDetails.Where(e => e.IssueId == id).ToListAsync();
+            _context.LabelDetails.RemoveRange(lb);
+
+            
             _context.Issues.Remove(issue);
             await _context.SaveChangesAsync();
 
