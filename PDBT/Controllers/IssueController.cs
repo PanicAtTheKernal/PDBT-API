@@ -66,14 +66,18 @@ namespace PDBT.Controllers
         // PUT: api/Issue/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutIssue(int id, Issue issue)
+        public async Task<IActionResult> PutIssue(int id, IssueDTO issueDto)
         {
-            if (id != issue.Id)
+            if (id != issueDto.Id)
             {
                 return BadRequest();
             }
 
+            var issue = DtoToIssue(issueDto);
+            
             _context.Entry(issue).State = EntityState.Modified;
+
+            if (issueDto.Labels != null) InsertLabels(issueDto.Labels, issue.Id);
 
             try
             {
@@ -112,22 +116,7 @@ namespace PDBT.Controllers
           //key
           await _context.SaveChangesAsync();
           
-          try
-          {
-              if (issueDto.Labels != null)
-                  foreach (LabelDTO lb in issueDto.Labels)
-                  {
-                      LabelDetail tempLd = new LabelDetail();
-                      tempLd.IssueId = issue.Id;
-                      tempLd.LabelId = lb.Id;
-                      _context.LabelDetails.Add(tempLd);
-                  }
-          }
-          catch (Exception e)
-          {
-              Console.WriteLine(e);
-              throw;
-          }
+          if (issueDto.Labels != null) InsertLabels(issueDto.Labels, issue.Id);
           
           await _context.SaveChangesAsync();
 
@@ -205,11 +194,31 @@ namespace PDBT.Controllers
 
             return issueLabels;
         }
-        
+
+        private void InsertLabels(ICollection<LabelDTO> labelds, int issueId)
+        {
+            foreach (LabelDTO lb in labelds)
+            {
+                LabelDetail tempLd = new LabelDetail();
+                tempLd.IssueId = issueId;
+                tempLd.LabelId = lb.Id;
+                if (!LabelDetailExists(issueId, lb.Id))
+                {
+                    _context.LabelDetails.Add(tempLd);
+                }
+            }
+            
+        }
         
         private bool IssueExists(int id)
         {
             return (_context.Issues?.Any(e => e.Id == id)).GetValueOrDefault();
+        }
+
+        private bool LabelDetailExists(int issueId, int labelId)
+        {
+            return (_context.LabelDetails?.Any(e => e.IssueId == issueId && e.LabelId == labelId))
+                .GetValueOrDefault();
         }
     }
 }
