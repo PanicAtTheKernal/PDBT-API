@@ -137,7 +137,7 @@ namespace PDBT.Controllers
           
           _context.Issues.Add(issue);
           
-          //Need to save here otherwise the id need to create an entry for label detail will not be present as an foreign
+          //Need to save here otherwise the id need to create an entry for label detail will not be present as an forign
           //key
           await _context.SaveChangesAsync();
           
@@ -228,11 +228,9 @@ namespace PDBT.Controllers
         {
             foreach (LabelDTO lb in labelds)
             {
-                LabelDetail tempLd = new LabelDetail
-                {
-                    IssueId = issueId,
-                    LabelId = lb.Id
-                };
+                LabelDetail tempLd = new LabelDetail();
+                tempLd.IssueId = issueId;
+                tempLd.LabelId = lb.Id;
                 if (!LabelDetailExists(issueId, lb.Id))
                 {
                     _context.LabelDetails.Add(tempLd);
