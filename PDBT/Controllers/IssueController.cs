@@ -77,8 +77,33 @@ namespace PDBT.Controllers
             
             _context.Entry(issue).State = EntityState.Modified;
 
-            if (issueDto.Labels != null) InsertLabels(issueDto.Labels, issue.Id);
+            var labels = await RetrieveLabels(issue.Id);
 
+            //Removes the labels that are not present in the DTO object from the issue
+            foreach (var label in labels)
+            {
+                var present = false;
+                
+                foreach (var labelDto in issueDto.Labels)
+                {
+                    if (label.Id.Equals(labelDto.Id))
+                    {
+                        present = true;
+                        break;
+                    }
+                    
+                }
+
+                if (present == false)
+                {
+                    var lb = await _context.LabelDetails.Where(e => e.IssueId == issue.Id && e.LabelId == label.Id).ToListAsync();
+                    if (lb.Count > 0) _context.LabelDetails.RemoveRange(lb);
+                }
+            }
+            
+            if (issueDto.Labels != null) InsertLabels(issueDto.Labels, issue.Id);
+            
+            
             try
             {
                 await _context.SaveChangesAsync();
