@@ -23,13 +23,25 @@ namespace PDBT.Controllers
 
         // GET: api/Issue
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Issue>>> GetIssues()
+        public async Task<ActionResult<IEnumerable<IssueDTO>>> GetIssues()
         {
-            if (_context.Issues == null)
+            var issues = await _context.Issues.ToListAsync();
+            
+            if (issues == null)
             {
                 return NotFound();
             }
-            return await _context.Issues.ToListAsync();
+
+            List<IssueDTO> issuesDto = new List<IssueDTO>();
+
+            foreach (var issue in issues)
+            {
+                var issueDto = IssueToDto(issue);
+                issueDto.Labels = await RetrieveLabels(issueDto.Id);
+                issuesDto.Add(issueDto);
+            }
+            
+            return issuesDto;
         }
 
         // GET: api/Issue/5
@@ -45,20 +57,8 @@ namespace PDBT.Controllers
 
             //Convert to DTO so we can attach the list of labels to it
             var issueDto = IssueToDto(issue);
-            
-            //Retrieve a list of the labels associated with the issue
-            var labelsDetails = await _context.LabelDetails.Where(ld => ld.IssueId.Equals(issue.Id))
-                .ToListAsync();
-            ICollection<Label> issueLabels = new List<Label>();
-            
-            foreach (var ld in labelsDetails)
-            {
-                var label = await _context.Labels.FindAsync(ld.LabelId);
-                if (label != null)
-                    issueLabels.Add(label);
-            }
 
-            issueDto.Labels = issueLabels;
+            issueDto.Labels = await RetrieveLabels(issueDto.Id);
 
             return issueDto;
         }
@@ -156,7 +156,24 @@ namespace PDBT.Controllers
                 DueDate = issue.DueDate,
                 TimeForCompletion = issue.TimeForCompletion
             };
-        
+
+        private async Task<ICollection<Label>> RetrieveLabels(int id)
+        {
+            //Retrieve a list of the labels associated with the issue
+            var labelsDetails = await _context.LabelDetails.Where(ld => ld.IssueId.Equals(id))
+                .ToListAsync();
+            ICollection<Label> issueLabels = new List<Label>();
+            
+            foreach (var ld in labelsDetails)
+            {
+                var label = await _context.Labels.FindAsync(ld.LabelId);
+                if (label != null)
+                    issueLabels.Add(label);
+            }
+
+            return issueLabels;
+        }
+
         private bool IssueExists(int id)
         {
             return (_context.Issues?.Any(e => e.Id == id)).GetValueOrDefault();
