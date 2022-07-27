@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace PDBT.Models;
 
 public class Issue

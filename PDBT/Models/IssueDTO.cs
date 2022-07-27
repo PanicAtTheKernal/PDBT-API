@@ -9,6 +9,5 @@ public class IssueDTO
     public IssuePriority Priority { get; set; } = IssuePriority.Medium;
     public DateTime? TimeForCompletion { get; set; }
     public DateTime? DueDate { get; set; }
-    public ICollection<LinkedIssue>? LinkedIssues { get; set; }
-    public ICollection<Label>? Labels { get; set; }
+    public ICollection<LabelDTO>? Labels { get; set; }
 }

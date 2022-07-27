@@ -97,32 +97,45 @@ namespace PDBT.Controllers
         // POST: api/Issue
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Issue>> PostIssue(Issue issue)
+        public async Task<ActionResult<IssueDTO>> PostIssue(IssueDTO issueDto)
         {
           if (_context.Issues == null)
           {
               return Problem("Entity set 'PdbtContext.Issues'  is null.");
           }
+
+          var issue = DtoToIssue(issueDto);
           
           _context.Issues.Add(issue);
+          
+          //Need to save here otherwise the id need to create an entry for label detail will not be present as an forign
+          //key
+          await _context.SaveChangesAsync();
+          
           try
           {
-              if (issue.Labels != null)
-                  foreach (LabelDetail lb in issue.Labels)
+              if (issueDto.Labels != null)
+                  foreach (LabelDTO lb in issueDto.Labels)
                   {
-                      _context.LabelDetails.Add(lb);
+                      LabelDetail tempLd = new LabelDetail();
+                      tempLd.IssueId = issue.Id;
+                      tempLd.LabelId = lb.Id;
+                      _context.LabelDetails.Add(tempLd);
                   }
-
           }
           catch (Exception e)
           {
               Console.WriteLine(e);
               throw;
           }
-
+          
           await _context.SaveChangesAsync();
 
-          return CreatedAtAction("GetIssue", new { id = issue.Id }, issue);
+          // This is done to prevent a json cycle exception from being thrown
+          var returnIssue = IssueToDto(await _context.Issues.FindAsync(issue.Id));
+          returnIssue.Labels = await RetrieveLabels(returnIssue.Id);
+          
+          return CreatedAtAction("GetIssue", new { id = issue.Id }, returnIssue);
         }
 
         // DELETE: api/Issue/5
@@ -157,23 +170,43 @@ namespace PDBT.Controllers
                 TimeForCompletion = issue.TimeForCompletion
             };
 
-        private async Task<ICollection<Label>> RetrieveLabels(int id)
+        private Issue DtoToIssue(IssueDTO issueDto) =>
+            new Issue()
+            {
+                Id = issueDto.Id,
+                IssueName = issueDto.IssueName,
+                Description = issueDto.Description,
+                Type = issueDto.Type,
+                Priority = issueDto.Priority,
+                DueDate = issueDto.DueDate,
+                TimeForCompletion = issueDto.TimeForCompletion
+            };
+
+        private LabelDTO LabelToDto(Label label) =>
+            new LabelDTO()
+            {
+                Id = label.Id,
+                Name = label.Name
+            };
+        
+        private async Task<ICollection<LabelDTO>> RetrieveLabels(int id)
         {
             //Retrieve a list of the labels associated with the issue
             var labelsDetails = await _context.LabelDetails.Where(ld => ld.IssueId.Equals(id))
                 .ToListAsync();
-            ICollection<Label> issueLabels = new List<Label>();
+            ICollection<LabelDTO> issueLabels = new List<LabelDTO>();
             
             foreach (var ld in labelsDetails)
             {
                 var label = await _context.Labels.FindAsync(ld.LabelId);
                 if (label != null)
-                    issueLabels.Add(label);
+                    issueLabels.Add(LabelToDto(label));
             }
 
             return issueLabels;
         }
-
+        
+        
         private bool IssueExists(int id)
         {
             return (_context.Issues?.Any(e => e.Id == id)).GetValueOrDefault();
