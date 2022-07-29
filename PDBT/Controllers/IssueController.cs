@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PDBT.Data;
@@ -74,7 +69,7 @@ namespace PDBT.Controllers
                     .Include(i => i.Labels)
                     .FirstOrDefaultAsync();
 
-                if (issue != null) issue = await InsertLabels(issue, issueDto.Labels);
+                if (issue != null) await InsertLabels(issue, issueDto.Labels);
             }
 
             try
