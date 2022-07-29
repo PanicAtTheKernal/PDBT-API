@@ -19,6 +19,21 @@ namespace PDBT.Migrations
                 .HasAnnotation("ProductVersion", "6.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
+            modelBuilder.Entity("IssueLabel", b =>
+                {
+                    b.Property<int>("IssuesId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LabelsId")
+                        .HasColumnType("int");
+
+                    b.HasKey("IssuesId", "LabelsId");
+
+                    b.HasIndex("LabelsId");
+
+                    b.ToTable("IssueLabel");
+                });
+
             modelBuilder.Entity("PDBT.Models.Issue", b =>
                 {
                     b.Property<int>("Id")
@@ -69,21 +84,6 @@ namespace PDBT.Migrations
                     b.ToTable("Labels");
                 });
 
-            modelBuilder.Entity("PDBT.Models.LabelDetail", b =>
-                {
-                    b.Property<int>("IssueId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("LabelId")
-                        .HasColumnType("int");
-
-                    b.HasKey("IssueId", "LabelId");
-
-                    b.HasIndex("LabelId");
-
-                    b.ToTable("LabelDetail");
-                });
-
             modelBuilder.Entity("PDBT.Models.LinkedIssue", b =>
                 {
                     b.Property<int>("Id")
@@ -105,23 +105,19 @@ namespace PDBT.Migrations
                     b.HasCheckConstraint("CK_LinkedIssues_Reason_Enum", "`Reason` IN (0, 1, 2)");
                 });
 
-            modelBuilder.Entity("PDBT.Models.LabelDetail", b =>
+            modelBuilder.Entity("IssueLabel", b =>
                 {
-                    b.HasOne("PDBT.Models.Issue", "Issue")
-                        .WithMany("Labels")
-                        .HasForeignKey("IssueId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("PDBT.Models.Label", "Label")
+                    b.HasOne("PDBT.Models.Issue", null)
                         .WithMany()
-                        .HasForeignKey("LabelId")
+                        .HasForeignKey("IssuesId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Issue");
-
-                    b.Navigation("Label");
+                    b.HasOne("PDBT.Models.Label", null)
+                        .WithMany()
+                        .HasForeignKey("LabelsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("PDBT.Models.LinkedIssue", b =>
@@ -137,8 +133,6 @@ namespace PDBT.Migrations
 
             modelBuilder.Entity("PDBT.Models.Issue", b =>
                 {
-                    b.Navigation("Labels");
-
                     b.Navigation("LinkedIssues");
                 });
 #pragma warning restore 612, 618

@@ -23,44 +23,34 @@ namespace PDBT.Controllers
 
         // GET: api/Issue
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<IssueDTO>>> GetIssues()
+        public async Task<ActionResult<IEnumerable<Issue>>> GetIssues()
         {
-            var issues = await _context.Issues.ToListAsync();
+            var issues = await _context.Issues
+                .Include(issue => issue.Labels)
+                .ToListAsync();
             
-            if (issues == null)
+            if (issues.Count == 0)
             {
                 return NotFound();
             }
 
-            List<IssueDTO> issuesDto = new List<IssueDTO>();
-
-            foreach (var issue in issues)
-            {
-                var issueDto = IssueToDto(issue);
-                issueDto.Labels = await RetrieveLabels(issueDto.Id);
-                issuesDto.Add(issueDto);
-            }
-            
-            return issuesDto;
+            return issues;
         }
 
         // GET: api/Issue/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<IssueDTO>> GetIssue(int id)
+        public async Task<ActionResult<Issue>> GetIssue(int id)
         {
-            var issue = await _context.Issues.FindAsync(id);
-            
+            var issue = await _context.Issues.Where(i => i.Id == id)
+                .Include(i => i.Labels)
+                .FirstOrDefaultAsync();
+
             if (issue == null)
             {
                 return NotFound();
             }
-
-            //Convert to DTO so we can attach the list of labels to it
-            var issueDto = IssueToDto(issue);
-
-            issueDto.Labels = await RetrieveLabels(issueDto.Id);
-
-            return issueDto;
+            
+            return issue;
         }
 
         // PUT: api/Issue/5
@@ -96,8 +86,8 @@ namespace PDBT.Controllers
 
                 if (present == false)
                 {
-                    var lb = await _context.LabelDetails.Where(e => e.IssueId == issue.Id && e.LabelId == label.Id).ToListAsync();
-                    if (lb.Count > 0) _context.LabelDetails.RemoveRange(lb);
+                    // var lb = await _context.LabelDetails.Where(e => e.IssueId == issue.Id && e.LabelId == label.Id).ToListAsync();
+                    // if (lb.Count > 0) _context.LabelDetails.RemoveRange(lb);
                 }
             }
             
@@ -166,8 +156,8 @@ namespace PDBT.Controllers
                 return NotFound();
             }
 
-            var lb = await _context.LabelDetails.Where(e => e.IssueId == id).ToListAsync();
-            _context.LabelDetails.RemoveRange(lb);
+            // var lb = await _context.LabelDetails.Where(e => e.IssueId == id).ToListAsync();
+            // _context.LabelDetails.RemoveRange(lb);
 
             
             _context.Issues.Remove(issue);
@@ -185,7 +175,7 @@ namespace PDBT.Controllers
                 Type = issue.Type,
                 Priority = issue.Priority,
                 DueDate = issue.DueDate,
-                TimeForCompletion = issue.TimeForCompletion
+                TimeForCompletion = issue.TimeForCompletion,
             };
 
         private Issue DtoToIssue(IssueDTO issueDto) =>
@@ -206,34 +196,34 @@ namespace PDBT.Controllers
                 Id = label.Id,
                 Name = label.Name
             };
-        
+
         private async Task<ICollection<LabelDTO>> RetrieveLabels(int id)
         {
             //Retrieve a list of the labels associated with the issue
-            var labelsDetails = await _context.LabelDetails.Where(ld => ld.IssueId.Equals(id))
-                .ToListAsync();
+            // var labelsDetails = await _context.Labels.Where(e => e.Issues.Where(e => e.Id == id)).ToListAsync();
             ICollection<LabelDTO> issueLabels = new List<LabelDTO>();
             
-            foreach (var ld in labelsDetails)
-            {
-                var label = await _context.Labels.FindAsync(ld.LabelId);
-                if (label != null)
-                    issueLabels.Add(LabelToDto(label));
-            }
+            // foreach (var ld in labelsDetails)
+            // {
+                // var label = await _context.Labels.FindAsync(ld.LabelId);
+                // if (label != null)
+                    // issueLabels.Add(LabelToDto(label));
+            // }
 
-            return issueLabels;
+            // return issueLabels;
+            return null;
         }
 
         private void InsertLabels(ICollection<LabelDTO> labelds, int issueId)
         {
             foreach (LabelDTO lb in labelds)
             {
-                LabelDetail tempLd = new LabelDetail();
-                tempLd.IssueId = issueId;
-                tempLd.LabelId = lb.Id;
+                // LabelDetail tempLd = new LabelDetail();
+                // tempLd.IssueId = issueId;
+                // tempLd.LabelId = lb.Id;
                 if (!LabelDetailExists(issueId, lb.Id))
                 {
-                    _context.LabelDetails.Add(tempLd);
+                    // _context.LabelDetails.Add(tempLd);
                 }
             }
             
@@ -246,8 +236,9 @@ namespace PDBT.Controllers
 
         private bool LabelDetailExists(int issueId, int labelId)
         {
-            return (_context.LabelDetails?.Any(e => e.IssueId == issueId && e.LabelId == labelId))
-                .GetValueOrDefault();
+            // return (_context.LabelDetails?.Any(e => e.IssueId == issueId && e.LabelId == labelId))
+                // .GetValueOrDefault();
+                return true;
         }
     }
 }
