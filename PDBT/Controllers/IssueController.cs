@@ -134,33 +134,20 @@ namespace PDBT.Controllers
             {
                 return NotFound();
             }
-            var issue = await _context.Issues.FindAsync(id);
+
+            var issue = await _context.Issues.Where(i => i.Id == id)
+                .Include(i => i.Labels)
+                .FirstOrDefaultAsync();
             if (issue == null)
             {
                 return NotFound();
             }
 
-            // var lb = await _context.LabelDetails.Where(e => e.IssueId == id).ToListAsync();
-            // _context.LabelDetails.RemoveRange(lb);
-
-            
             _context.Issues.Remove(issue);
             await _context.SaveChangesAsync();
 
             return NoContent();
         }
-
-        private IssueDTO IssueToDto(Issue issue) =>
-            new IssueDTO()
-            {
-                Id = issue.Id,
-                IssueName = issue.IssueName,
-                Description = issue.Description,
-                Type = issue.Type,
-                Priority = issue.Priority,
-                DueDate = issue.DueDate,
-                TimeForCompletion = issue.TimeForCompletion,
-            };
 
         private Issue DtoToIssue(IssueDTO issueDto) =>
             new Issue()
@@ -173,14 +160,7 @@ namespace PDBT.Controllers
                 DueDate = issueDto.DueDate,
                 TimeForCompletion = issueDto.TimeForCompletion
             };
-
-        private LabelDTO LabelToDto(Label label) =>
-            new LabelDTO()
-            {
-                Id = label.Id,
-                Name = label.Name
-            };
-
+        
         private async Task<Label?> RetrieveLabel(int id)
         {
             var label = await _context.Labels.FindAsync(id);
