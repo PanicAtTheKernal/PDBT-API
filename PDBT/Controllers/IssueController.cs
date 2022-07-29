@@ -66,34 +66,17 @@ namespace PDBT.Controllers
             var issue = DtoToIssue(issueDto);
             
             _context.Entry(issue).State = EntityState.Modified;
-
-            var labels = await RetrieveLabels(issue.Id);
-
-            //Removes the labels that are not present in the DTO object from the issue
-            foreach (var label in labels)
+            
+            if (issueDto.Labels != null)
             {
-                var present = false;
-                
-                foreach (var labelDto in issueDto.Labels)
-                {
-                    if (label.Id.Equals(labelDto.Id))
-                    {
-                        present = true;
-                        break;
-                    }
-                    
-                }
+                // Need to retrive list of current labels to prevent duplicate entries
+                issue = await _context.Issues.Where(i => i.Id == id)
+                    .Include(i => i.Labels)
+                    .FirstOrDefaultAsync();
 
-                if (present == false)
-                {
-                    // var lb = await _context.LabelDetails.Where(e => e.IssueId == issue.Id && e.LabelId == label.Id).ToListAsync();
-                    // if (lb.Count > 0) _context.LabelDetails.RemoveRange(lb);
-                }
+                if (issue != null) issue = await InsertLabels(issue, issueDto.Labels);
             }
-            
-            if (issueDto.Labels != null) InsertLabels(issueDto.Labels, issue.Id);
-            
-            
+
             try
             {
                 await _context.SaveChangesAsync();
@@ -126,20 +109,21 @@ namespace PDBT.Controllers
           var issue = DtoToIssue(issueDto);
           
           _context.Issues.Add(issue);
-          
-          //Need to save here otherwise the id need to create an entry for label detail will not be present as an forign
-          //key
-          await _context.SaveChangesAsync();
-          
-          if (issueDto.Labels != null) InsertLabels(issueDto.Labels, issue.Id);
-          
+          // await _context.SaveChangesAsync();
+
+          if (issueDto.Labels != null)
+          {
+              //Prevents a null reference exception when adding the labels
+              issue.Labels = new List<Label>();
+
+              issue = await InsertLabels(issue, issueDto.Labels);
+          }
+
+
+
           await _context.SaveChangesAsync();
 
-          // This is done to prevent a json cycle exception from being thrown
-          var returnIssue = IssueToDto(await _context.Issues.FindAsync(issue.Id));
-          returnIssue.Labels = await RetrieveLabels(returnIssue.Id);
-          
-          return CreatedAtAction("GetIssue", new { id = issue.Id }, returnIssue);
+          return CreatedAtAction("GetIssue", new { id = issue.Id }, issue);
         }
 
         // DELETE: api/Issue/5
@@ -197,48 +181,39 @@ namespace PDBT.Controllers
                 Name = label.Name
             };
 
-        private async Task<ICollection<LabelDTO>> RetrieveLabels(int id)
+        private async Task<Label?> RetrieveLabel(int id)
         {
-            //Retrieve a list of the labels associated with the issue
-            // var labelsDetails = await _context.Labels.Where(e => e.Issues.Where(e => e.Id == id)).ToListAsync();
-            ICollection<LabelDTO> issueLabels = new List<LabelDTO>();
-            
-            // foreach (var ld in labelsDetails)
-            // {
-                // var label = await _context.Labels.FindAsync(ld.LabelId);
-                // if (label != null)
-                    // issueLabels.Add(LabelToDto(label));
-            // }
+            var label = await _context.Labels.FindAsync(id);
 
-            // return issueLabels;
-            return null;
+            if (label == null)
+                return null;
+            
+            return label;
         }
 
-        private void InsertLabels(ICollection<LabelDTO> labelds, int issueId)
+        private async Task<Issue?> InsertLabels(Issue issue, ICollection<LabelDTO> labelsDtos)
         {
-            foreach (LabelDTO lb in labelds)
+            foreach (var labelDto in labelsDtos)
             {
-                // LabelDetail tempLd = new LabelDetail();
-                // tempLd.IssueId = issueId;
-                // tempLd.LabelId = lb.Id;
-                if (!LabelDetailExists(issueId, lb.Id))
+                var label = await RetrieveLabel(labelDto.Id);
+
+                if (label == null)
                 {
-                    // _context.LabelDetails.Add(tempLd);
+                    return null;
                 }
+
+                if (issue.Labels.All(l => l.Id != label.Id))
+                    issue.Labels.Add(label);
+                    
             }
-            
+
+            return issue;
         }
         
         private bool IssueExists(int id)
         {
             return (_context.Issues?.Any(e => e.Id == id)).GetValueOrDefault();
         }
-
-        private bool LabelDetailExists(int issueId, int labelId)
-        {
-            // return (_context.LabelDetails?.Any(e => e.IssueId == issueId && e.LabelId == labelId))
-                // .GetValueOrDefault();
-                return true;
-        }
+        
     }
 }
