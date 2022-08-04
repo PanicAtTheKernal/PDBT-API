@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PDBT", "PDBT\PDBT.csproj", "{3AD5D187-F102-4590-B1B7-69DE1092B5EF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PDBT.Tests", "PDBT.Tests\PDBT.Tests.csproj", "{09628D01-0905-4480-B574-511C913BFBCB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{3AD5D187-F102-4590-B1B7-69DE1092B5EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3AD5D187-F102-4590-B1B7-69DE1092B5EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3AD5D187-F102-4590-B1B7-69DE1092B5EF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{09628D01-0905-4480-B574-511C913BFBCB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{09628D01-0905-4480-B574-511C913BFBCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{09628D01-0905-4480-B574-511C913BFBCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{09628D01-0905-4480-B574-511C913BFBCB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

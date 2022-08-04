@@ -9,9 +9,9 @@ namespace PDBT.Controllers
     [ApiController]
     public class IssueController : ControllerBase
     {
-        private readonly PdbtContext _context;
+        private readonly IPdbtContext _context;
 
-        public IssueController(PdbtContext context)
+        public IssueController(IPdbtContext context)
         {
             _context = context;
         }

@@ -1,13 +1,20 @@
-using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using PDBT.Data;
-
+using PDBT.Repository;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 MariaDbServerVersion serverVersion = new MariaDbServerVersion(new Version(10,5));
+
+#region Repositories
+builder.Services.AddTransient(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+builder.Services.AddTransient<IIssueRepository, IssueRepository>();
+builder.Services.AddTransient<ILabelRepository, LabelRepository>();
+builder.Services.AddTransient<IUnitOfWork, UnitOfWork>();
+#endregion
+
 
 builder.Services.AddControllers();
 builder.Services.AddDbContext<PdbtContext>(opt => opt
