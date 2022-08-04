@@ -65,7 +65,7 @@ namespace PDBT.Controllers
                 // Need to retrive list of current labels to prevent duplicate entries
                 issue = await _context.Issues.GetByIdAsync(id);
 
-                if (issue != null) await InsertLabels(issue, issueDto.Labels);
+                await InsertLabels(issue, issueDto.Labels);
             }
 
             try

@@ -64,6 +64,24 @@ public class IssueControllerTests
         }
     }.AsEnumerable();
 
+    private IssueDTO sampleDto = new IssueDTO()
+    {
+        Id = 1,
+        IssueName = "Example",
+        Description = "This is an example",
+        DueDate = DateTime.Now,
+        Labels = new List<LabelDTO>()
+        {
+            new LabelDTO()
+            {
+                Id = 1
+            }
+        },
+        Priority = IssuePriority.Medium,
+        TimeForCompletion = DateTime.Now,
+        Type = IssueType.Bug
+    };
+    
     public IssueControllerTests()
     {
         _sut = new IssueController(_unitOfWorkMock.Object);
@@ -125,5 +143,96 @@ public class IssueControllerTests
 
         // Assert
         Assert.IsType<NotFoundResult>(issues.Result);
+    }
+
+    [Fact]
+    public async Task PutIssue_ShouldReturn204_WhenDtoAndIdIsVaildWithLabels()
+    {
+        // Arrange
+        var id = 1;
+        
+        _unitOfWorkMock.Verify(uow => uow.Issues.Update(It.IsAny<Issue>()), Times.AtMost(1));
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetByIdAsync(id).Result).Returns(SampleIssueData.First());
+        _unitOfWorkMock.Setup(uow => uow.Labels.GetByIdAsync(id).Result).Returns(It.IsAny<Label>());
+        _unitOfWorkMock.Setup(uow => uow.CompleteAsync().Result).Returns(1);
+
+        
+        // Act
+        var issue = await _sut.PutIssue(id, sampleDto);
+
+        // Assert
+        Assert.IsType<NoContentResult>(issue);
+    }
+
+    [Fact]
+    public async Task PutIssue_ShouldReturn400_WhenIdAndDtoMismatch()
+    {
+        // Arrange
+        const int id = 40;
+
+        // Act
+        var issue = await _sut.PutIssue(id, sampleDto);
+
+        // Assert
+        Assert.IsType<BadRequestResult>(issue);
+    }
+
+    [Fact]
+    public async Task PutIssue_ShouldReturn204_WhenDtoAndIdIsVaildWithoutLabels()
+    {
+        // Arrange
+        var id = 1;
+        var tempDto = sampleDto;
+        tempDto.Labels = null;
+        
+        _unitOfWorkMock.Verify(uow => uow.Issues.Update(It.IsAny<Issue>()), Times.AtMost(1));
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetByIdAsync(id).Result).Returns(It.IsAny<Issue>());
+        _unitOfWorkMock.Setup(uow => uow.CompleteAsync().Result).Returns(1);
+
+        
+        // Act
+        var issue = await _sut.PutIssue(id, tempDto);
+
+        // Assert
+        Assert.IsType<NoContentResult>(issue);
+    }
+
+    [Fact]
+    public async Task PutIssue_ShouldReturn404_WhenDbUpdateConcurrencyExceptionIsThrown()
+    {
+        // Arrange
+        // ReSharper disable once CollectionNeverUpdated.Local
+        var emptyList = new List<Issue>() {};
+        
+        _unitOfWorkMock.Verify(uow => uow.Issues.Update(It.IsAny<Issue>()), Times.AtMost(1));
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetByIdAsync(1).Result).Returns(It.IsAny<Issue>());
+        _unitOfWorkMock.Setup(uow => uow.Labels.GetByIdAsync(1).Result).Returns(It.IsAny<Label>());
+        _unitOfWorkMock.Setup(uow => uow.CompleteAsync()).Throws<DbUpdateConcurrencyException>();
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetAll()).Returns(emptyList);
+        
+        
+        // Act
+        var results = await _sut.PutIssue(1, sampleDto);
+
+        // Assert
+        Assert.IsType<NotFoundResult>(results);
+    }
+    
+    [Fact]
+    public async Task PutIssue_ShouldThorwError_WhenDbUpdateConcurrencyExceptionIsThrown()
+    {
+        // Arrange
+        _unitOfWorkMock.Verify(uow => uow.Issues.Update(It.IsAny<Issue>()), Times.AtMost(1));
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetByIdAsync(1).Result).Returns(It.IsAny<Issue>());
+        _unitOfWorkMock.Setup(uow => uow.Labels.GetByIdAsync(1).Result).Returns(It.IsAny<Label>());
+        _unitOfWorkMock.Setup(uow => uow.CompleteAsync()).Throws<DbUpdateConcurrencyException>();
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetAll()).Returns(SampleIssueData);
+        
+        
+        // Act
+        Task Act() => _sut.PutIssue(1, sampleDto);
+
+        // Assert
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(Act);
     }
 }
