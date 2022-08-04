@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PDBT.Data;
 using PDBT.Models;
+using PDBT.Repository;
 
 namespace PDBT.Controllers
 {
@@ -9,22 +10,21 @@ namespace PDBT.Controllers
     [ApiController]
     public class IssueController : ControllerBase
     {
-        private readonly IPdbtContext _context;
+        private readonly IUnitOfWork _context;
 
-        public IssueController(IPdbtContext context)
+        public IssueController(IUnitOfWork unitOfWork)
         {
-            _context = context;
+            _context = unitOfWork;
         }
 
         // GET: api/Issue
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Issue>>> GetIssues()
         {
-            var issues = await _context.Issues
-                .Include(issue => issue.Labels)
-                .ToListAsync();
-            
-            if (issues.Count == 0)
+            var enumerable = await _context.Issues.GetAllAsync();
+
+            var issues = enumerable.ToList();
+            if (!issues.Any())
             {
                 return NotFound();
             }
@@ -36,9 +36,7 @@ namespace PDBT.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Issue>> GetIssue(int id)
         {
-            var issue = await _context.Issues.Where(i => i.Id == id)
-                .Include(i => i.Labels)
-                .FirstOrDefaultAsync();
+            var issue = await _context.Issues.GetByIdAsync(id);
 
             if (issue == null)
             {
@@ -60,21 +58,19 @@ namespace PDBT.Controllers
 
             var issue = DtoToIssue(issueDto);
             
-            _context.Entry(issue).State = EntityState.Modified;
+            _context.Issues.Update(issue);
             
             if (issueDto.Labels != null)
             {
                 // Need to retrive list of current labels to prevent duplicate entries
-                issue = await _context.Issues.Where(i => i.Id == id)
-                    .Include(i => i.Labels)
-                    .FirstOrDefaultAsync();
+                issue = await _context.Issues.GetByIdAsync(id);
 
                 if (issue != null) await InsertLabels(issue, issueDto.Labels);
             }
 
             try
             {
-                await _context.SaveChangesAsync();
+                await _context.CompleteAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -96,7 +92,7 @@ namespace PDBT.Controllers
         [HttpPost]
         public async Task<ActionResult<IssueDTO>> PostIssue(IssueDTO issueDto)
         {
-          if (_context.Issues == null)
+          if (!(await _context.Issues.GetAllAsync()).Any())
           {
               return Problem("Entity set 'PdbtContext.Issues'  is null.");
           }
@@ -116,7 +112,7 @@ namespace PDBT.Controllers
 
 
 
-          await _context.SaveChangesAsync();
+          await _context.CompleteAsync();
 
           return CreatedAtAction("GetIssue", new { id = issue.Id }, issue);
         }
@@ -125,21 +121,19 @@ namespace PDBT.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteIssue(int id)
         {
-            if (_context.Issues == null)
+            if (!(await _context.Issues.GetAllAsync()).Any())
             {
                 return NotFound();
             }
 
-            var issue = await _context.Issues.Where(i => i.Id == id)
-                .Include(i => i.Labels)
-                .FirstOrDefaultAsync();
+            var issue = await _context.Issues.GetByIdAsync(id);
             if (issue == null)
             {
                 return NotFound();
             }
 
             _context.Issues.Remove(issue);
-            await _context.SaveChangesAsync();
+            await _context.CompleteAsync();
 
             return NoContent();
         }
@@ -158,7 +152,7 @@ namespace PDBT.Controllers
         
         private async Task<Label?> RetrieveLabel(int id)
         {
-            var label = await _context.Labels.FindAsync(id);
+            var label = await _context.Labels.GetByIdAsync(id);
 
             if (label == null)
                 return null;
@@ -187,7 +181,7 @@ namespace PDBT.Controllers
         
         private bool IssueExists(int id)
         {
-            return (_context.Issues?.Any(e => e.Id == id)).GetValueOrDefault();
+            return _context.Issues.GetAll().Any(e => e.Id == id);
         }
         
     }

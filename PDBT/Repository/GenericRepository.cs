@@ -1,5 +1,7 @@
 using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 using PDBT.Data;
+using PDBT.Models;
 
 namespace PDBT.Repository;
 
@@ -21,21 +23,36 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
         _context.Set<T>().AddRange(entities);
     }
 
+
     public IEnumerable<T> Find(Expression<Func<T, bool>> expression)
     {
         return _context.Set<T>().Where(expression);
     }
 
-    public IEnumerable<T> GetAll()
+    public virtual IEnumerable<T> GetAll()
     {
         return _context.Set<T>().ToList();
     }
 
-    public T GetById(int id)
+    public virtual void Update(T entity)
     {
-        return _context.Set<T>().Find(id);
+        _context.Entry(entity).State = EntityState.Modified;
+    }
+    
+    public virtual async Task<IEnumerable<T>> GetAllAsync()
+    {
+        return await _context.Set<T>().ToListAsync();
+    }
+    public virtual T GetById(int id)
+    {
+        return _context.Set<T>().Find(id)!;
     }
 
+    public virtual async Task<T> GetByIdAsync(int id)
+    {
+        return (await _context.Set<T>().FindAsync(id))!;
+    }
+    
     public void Remove(T entity)
     {
         _context.Set<T>().Remove(entity);

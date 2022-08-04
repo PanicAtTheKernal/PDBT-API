@@ -11,6 +11,7 @@ using MockQueryable.Moq;
 using PDBT.Controllers;
 using PDBT.Data;
 using PDBT.Models;
+using PDBT.Repository;
 using Xunit;
 
 
@@ -19,11 +20,11 @@ namespace PDBT.Tests;
 public class IssueControllerTests
 {
     private readonly IssueController _sut;
-    private readonly Mock<IPdbtContext> _pdbtContextMock = new Mock<IPdbtContext>(); 
+    private readonly Mock<IUnitOfWork> _unitOfWorkMock = new Mock<IUnitOfWork>(); 
 
     public IssueControllerTests()
     {
-        _sut = new IssueController(_pdbtContextMock.Object);
+        _sut = new IssueController(_unitOfWorkMock.Object);
     }
     
     [Fact]
@@ -51,10 +52,9 @@ public class IssueControllerTests
                 TimeForCompletion = DateTime.Now,
                 Type = IssueType.Bug
             }
-        }.AsQueryable();
+        }.AsEnumerable();
 
-        var dbmock = data.AsQueryable().BuildMockDbSet();
-        _pdbtContextMock.SetupProperty(context => context.Issues, dbmock.Object);
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetAllAsync().Result).Returns(data);
         
         // Act 
         var issues = await _sut.GetIssues();

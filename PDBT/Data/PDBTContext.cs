@@ -13,8 +13,4 @@ public class PdbtContext : DbContext, IPdbtContext
     public PdbtContext(DbContextOptions<PdbtContext> options) : base(options)
     {
     }
-    
-    public PdbtContext()
-    {
-    }
 }
