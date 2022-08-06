@@ -90,7 +90,7 @@ namespace PDBT.Controllers
         // POST: api/Issue
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<IssueDTO>> PostIssue(IssueDTO issueDto)
+        public async Task<ActionResult<Issue>> PostIssue(IssueDTO issueDto)
         {
           if (!(await _context.Issues.GetAllAsync()).Any())
           {
@@ -100,7 +100,6 @@ namespace PDBT.Controllers
           var issue = DtoToIssue(issueDto);
           
           _context.Issues.Add(issue);
-          // await _context.SaveChangesAsync();
 
           if (issueDto.Labels != null)
           {
@@ -166,13 +165,12 @@ namespace PDBT.Controllers
             {
                 var label = await RetrieveLabel(labelDto.Id);
 
-                if (label == null)
+                if (label != null)
                 {
-                    return null;
+                    if (issue.Labels.All(l => l.Id != label.Id))
+                        issue.Labels.Add(label);
                 }
 
-                if (issue.Labels.All(l => l.Id != label.Id))
-                    issue.Labels.Add(label);
                     
             }
 

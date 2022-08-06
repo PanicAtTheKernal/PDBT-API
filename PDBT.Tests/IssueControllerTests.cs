@@ -198,7 +198,7 @@ public class IssueControllerTests
     }
 
     [Fact]
-    public async Task PutIssue_ShouldReturn404_WhenDbUpdateConcurrencyExceptionIsThrown()
+    public async Task PutIssue_ShouldReturn404_WhenDbUpdateConcurrencyExceptionIsThrownButIssueDoesNotExist()
     {
         // Arrange
         // ReSharper disable once CollectionNeverUpdated.Local
@@ -235,4 +235,59 @@ public class IssueControllerTests
         // Assert
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(Act);
     }
+
+    [Fact]
+    public async Task PostIssue_ShouldReturnIssue_WhenIssueIsVaildWithLabels()
+    {
+        // Arrange
+        var sampleIssue = DtoToIssue(sampleDto);
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetAllAsync().Result).Returns(SampleIssueData);
+        _unitOfWorkMock.Setup(uow => uow.Issues.Add(sampleIssue));
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetByIdAsync(It.IsAny<int>()).Result)
+            .Returns(SampleIssueData.First());
+        _unitOfWorkMock.Setup(uow => uow.Labels.GetByIdAsync(It.IsAny<int>()).Result)
+            .Returns(SampleIssueData.First().Labels.First());
+        _unitOfWorkMock.Setup(uow => uow.CompleteAsync().Result).Returns(1);
+        sampleIssue.Labels = new List<Label>()
+        {
+            new Label()
+            {
+                Id = 1,
+                Name = "Test"
+            }
+        };
+        
+        // Act
+        var results = await _sut.PostIssue(sampleDto);
+        
+        // Assert
+        Assert.IsType<ActionResult<Issue>>(results);
+    }
+    
+    [Fact]
+    public async Task PostIssue_ShouldReturnProblem_WhenIssuesAreNull()
+    {
+        // Arrange
+        var sampleIssue = DtoToIssue(sampleDto);
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetAllAsync().Result)
+            .Returns(new List<Issue>().AsEnumerable);
+
+        // Act
+        var results = await _sut.PostIssue(sampleDto);
+        
+        // Assert
+        Assert.IsType<ActionResult<Issue>>(results);
+    }
+    
+    private Issue DtoToIssue(IssueDTO issueDto) =>
+        new Issue()
+        {
+            Id = issueDto.Id,
+            IssueName = issueDto.IssueName,
+            Description = issueDto.Description,
+            Type = issueDto.Type,
+            Priority = issueDto.Priority,
+            DueDate = issueDto.DueDate,
+            TimeForCompletion = issueDto.TimeForCompletion
+        };
 }
