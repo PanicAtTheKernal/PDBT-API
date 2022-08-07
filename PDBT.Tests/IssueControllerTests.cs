@@ -104,9 +104,8 @@ public class IssueControllerTests
     public async Task GetIssues_ShouldReturn404_WhenNoIssuesExists()
     {
         // Arrange
-        var notfound = new NotFoundResult();
-        var emptyList = new List<Issue>() {};
-        _unitOfWorkMock.Setup(uow => uow.Issues.GetAllAsync().Result).Returns(emptyList);
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetAllAsync().Result)
+            .Returns(Enumerable.Empty<Issue>());
 
         // Act
         var issues = await _sut.GetIssues();
@@ -152,8 +151,10 @@ public class IssueControllerTests
         var id = 1;
         
         _unitOfWorkMock.Verify(uow => uow.Issues.Update(It.IsAny<Issue>()), Times.AtMost(1));
-        _unitOfWorkMock.Setup(uow => uow.Issues.GetByIdAsync(id).Result).Returns(SampleIssueData.First());
-        _unitOfWorkMock.Setup(uow => uow.Labels.GetByIdAsync(id).Result).Returns(It.IsAny<Label>());
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetByIdAsync(id).Result)
+            .Returns(SampleIssueData.First());
+        _unitOfWorkMock.Setup(uow => uow.Labels.GetByIdAsync(id).Result)
+            .Returns(SampleIssueData.First().Labels.First);
         _unitOfWorkMock.Setup(uow => uow.CompleteAsync().Result).Returns(1);
 
         
@@ -184,9 +185,10 @@ public class IssueControllerTests
         var id = 1;
         var tempDto = sampleDto;
         tempDto.Labels = null;
+        var tempIssue = DtoToIssue(tempDto);
         
         _unitOfWorkMock.Verify(uow => uow.Issues.Update(It.IsAny<Issue>()), Times.AtMost(1));
-        _unitOfWorkMock.Setup(uow => uow.Issues.GetByIdAsync(id).Result).Returns(It.IsAny<Issue>());
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetByIdAsync(id).Result).Returns(tempIssue);
         _unitOfWorkMock.Setup(uow => uow.CompleteAsync().Result).Returns(1);
 
         
@@ -208,7 +210,7 @@ public class IssueControllerTests
         _unitOfWorkMock.Setup(uow => uow.Issues.GetByIdAsync(1).Result).Returns(It.IsAny<Issue>());
         _unitOfWorkMock.Setup(uow => uow.Labels.GetByIdAsync(1).Result).Returns(It.IsAny<Label>());
         _unitOfWorkMock.Setup(uow => uow.CompleteAsync()).Throws<DbUpdateConcurrencyException>();
-        _unitOfWorkMock.Setup(uow => uow.Issues.GetAll()).Returns(emptyList);
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetAll()).Returns(Enumerable.Empty<Issue>());
         
         
         // Act
@@ -270,13 +272,66 @@ public class IssueControllerTests
         // Arrange
         var sampleIssue = DtoToIssue(sampleDto);
         _unitOfWorkMock.Setup(uow => uow.Issues.GetAllAsync().Result)
-            .Returns(new List<Issue>().AsEnumerable);
+            .Returns(Enumerable.Empty<Issue>());
 
         // Act
         var results = await _sut.PostIssue(sampleDto);
         
         // Assert
         Assert.IsType<ActionResult<Issue>>(results);
+    }
+
+    [Fact]
+    public async Task DeleteIssue_ShouldReturnNoContent_WhenIdIsValid()
+    {
+        // Arrange
+        int id = 1;
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetAllAsync().Result).Returns(SampleIssueData);
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetByIdAsync(It.IsAny<int>()).Result)
+            .Returns(SampleIssueData.First());
+        _unitOfWorkMock.Verify(uow => uow.Issues.Remove(It.IsAny<Issue>()), Times.AtMost(1));
+        _unitOfWorkMock.Setup(uow => uow.CompleteAsync().Result).Returns(1);
+
+
+        // Act
+        var results = await _sut.DeleteIssue(id);
+
+        // Assert
+        Assert.IsType<NoContentResult>(results);
+    }
+    
+    [Fact]
+    public async Task DeleteIssue_ShouldReturnNotFound_WhenIdIsInvalid()
+    {
+        // Arrange
+        int id = 1;
+        Issue empty = null;
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetAllAsync().Result).Returns(SampleIssueData);
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetByIdAsync(It.IsAny<int>()).Result)
+            .Returns(empty);
+
+
+        // Act
+        var results = await _sut.DeleteIssue(id);
+
+        // Assert
+        Assert.IsType<NotFoundResult>(results);
+    }
+    
+    [Fact]
+    public async Task DeleteIssue_ShouldReturnNotFound_WhenNoIssuesExist()
+    {
+        // Arrange
+        int id = 1;
+        _unitOfWorkMock.Setup(uow => uow.Issues.GetAllAsync().Result)
+            .Returns(Enumerable.Empty<Issue>());
+
+
+        // Act
+        var results = await _sut.DeleteIssue(id);
+
+        // Assert
+        Assert.IsType<NotFoundResult>(results);
     }
     
     private Issue DtoToIssue(IssueDTO issueDto) =>
