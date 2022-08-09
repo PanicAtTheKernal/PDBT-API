@@ -34,6 +34,21 @@ namespace PDBT.Migrations
                     b.ToTable("IssueLabel");
                 });
 
+            modelBuilder.Entity("IssueUser", b =>
+                {
+                    b.Property<int>("AssignedIssuesId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("AssigneesId")
+                        .HasColumnType("int");
+
+                    b.HasKey("AssignedIssuesId", "AssigneesId");
+
+                    b.HasIndex("AssigneesId");
+
+                    b.ToTable("IssueUser");
+                });
+
             modelBuilder.Entity("PDBT.Models.Issue", b =>
                 {
                     b.Property<int>("Id")
@@ -54,6 +69,9 @@ namespace PDBT.Migrations
                     b.Property<int>("Priority")
                         .HasColumnType("int");
 
+                    b.Property<int>("RootProjectID")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("TimeForCompletion")
                         .HasColumnType("datetime(6)");
 
@@ -61,6 +79,8 @@ namespace PDBT.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("RootProjectID");
 
                     b.ToTable("Issues");
 
@@ -105,6 +125,87 @@ namespace PDBT.Migrations
                     b.HasCheckConstraint("CK_LinkedIssues_Reason_Enum", "`Reason` IN (0, 1, 2)");
                 });
 
+            modelBuilder.Entity("PDBT.Models.Project", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Projects");
+                });
+
+            modelBuilder.Entity("PDBT.Models.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<byte[]>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("longblob");
+
+                    b.Property<string>("PasswordResetToken")
+                        .HasColumnType("longtext");
+
+                    b.Property<byte[]>("PasswordSalt")
+                        .IsRequired()
+                        .HasColumnType("longblob");
+
+                    b.Property<DateTime?>("ResetTokenExpires")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("VerificationToken")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("ProjectUser", b =>
+                {
+                    b.Property<int>("ProjectsId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UsersId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProjectsId", "UsersId");
+
+                    b.HasIndex("UsersId");
+
+                    b.ToTable("ProjectUser");
+                });
+
             modelBuilder.Entity("IssueLabel", b =>
                 {
                     b.HasOne("PDBT.Models.Issue", null)
@@ -120,6 +221,32 @@ namespace PDBT.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("IssueUser", b =>
+                {
+                    b.HasOne("PDBT.Models.Issue", null)
+                        .WithMany()
+                        .HasForeignKey("AssignedIssuesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PDBT.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("AssigneesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PDBT.Models.Issue", b =>
+                {
+                    b.HasOne("PDBT.Models.Project", "RootProject")
+                        .WithMany("Issues")
+                        .HasForeignKey("RootProjectID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RootProject");
+                });
+
             modelBuilder.Entity("PDBT.Models.LinkedIssue", b =>
                 {
                     b.HasOne("PDBT.Models.Issue", "Issue")
@@ -131,9 +258,29 @@ namespace PDBT.Migrations
                     b.Navigation("Issue");
                 });
 
+            modelBuilder.Entity("ProjectUser", b =>
+                {
+                    b.HasOne("PDBT.Models.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PDBT.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UsersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("PDBT.Models.Issue", b =>
                 {
                     b.Navigation("LinkedIssues");
+                });
+
+            modelBuilder.Entity("PDBT.Models.Project", b =>
+                {
+                    b.Navigation("Issues");
                 });
 #pragma warning restore 612, 618
         }

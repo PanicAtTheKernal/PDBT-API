@@ -13,6 +13,12 @@ public class Issue
     public DateTime? DueDate { get; set; }
     public ICollection<LinkedIssue>? LinkedIssues { get; set; }
     public ICollection<Label> Labels { get; set; }
+    [JsonIgnore]
+    public ICollection<User> Assignees { get; set; }
+    [JsonIgnore]
+    public Project RootProject { get; set; }
+
+    public int RootProjectID { get; set; }
 }
 
 public enum IssuePriority
