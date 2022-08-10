@@ -17,6 +17,8 @@ public class UnitOfWork: IUnitOfWork
         _context = context;
         Issues = new IssueRepository(context);
         Labels = new LabelRepository(context);
+        Users = new UserRepository(context);
+        Projects = new ProjectRepository(context);
     }
 
     public int Complete()
