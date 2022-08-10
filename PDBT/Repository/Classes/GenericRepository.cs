@@ -1,7 +1,6 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using PDBT.Data;
-using PDBT.Models;
 
 namespace PDBT.Repository;
 
@@ -11,6 +10,16 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
     public GenericRepository(PdbtContext context)
     {
         _context = context;
+    }
+
+    public bool Any(Expression<Func<T, bool>> expression)
+    {
+        return _context.Set<T>().Any(expression);
+    }
+
+    public async Task<bool> AnyAsync(Expression<Func<T, bool>> expression)
+    {
+        return await _context.Set<T>().AnyAsync(expression);
     }
 
     public void Add(T entity)

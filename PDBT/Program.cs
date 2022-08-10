@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PDBT.Data;
 using PDBT.Repository;
+using PDBT.Repository.Classes;
 
 
 var builder = WebApplication.CreateBuilder(args);

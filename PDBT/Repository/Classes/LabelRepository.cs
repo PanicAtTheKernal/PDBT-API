@@ -1,5 +1,6 @@
 using PDBT.Data;
 using PDBT.Models;
+using PDBT.Repository.Classes;
 
 namespace PDBT.Repository;
 

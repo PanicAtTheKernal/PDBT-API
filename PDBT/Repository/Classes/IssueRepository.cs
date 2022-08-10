@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using PDBT.Data;
 using PDBT.Models;
 
-namespace PDBT.Repository;
+namespace PDBT.Repository.Classes;
 
 public class IssueRepository : GenericRepository<Issue>, IIssueRepository
 {
