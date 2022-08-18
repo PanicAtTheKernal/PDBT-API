@@ -59,8 +59,13 @@ namespace PDBT.Controllers
         // PUT: api/Issue/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutIssue(int id, IssueDTO issueDto)
+        public async Task<IActionResult> PutIssue(int id, IssueDTO issueDto, int projectId)
         {
+            if (!ProjectExists(projectId))
+            {
+                return NotFound("Project not found");
+            }
+            
             if (id != issueDto.Id)
             {
                 return BadRequest();
@@ -100,36 +105,46 @@ namespace PDBT.Controllers
         // POST: api/Issue
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Issue>> PostIssue(IssueDTO issueDto)
+        public async Task<ActionResult<Issue>> PostIssue(IssueDTO issueDto, int projectId)
         {
-          if (!(await _context.Issues.GetAllAsync()).Any())
-          {
+            if (!ProjectExists(projectId))
+            {
+                return NotFound("Project not found");
+            }
+
+            if (!(await _context.Issues.GetAllAsync()).Any())
+            {
               return Problem("Entity set 'PdbtContext.Issues'  is null.");
-          }
+            }
 
-          var issue = DtoToIssue(issueDto);
-          
-          _context.Issues.Add(issue);
+            var issue = DtoToIssue(issueDto);
 
-          if (issueDto.Labels != null)
-          {
+            _context.Issues.Add(issue);
+
+            if (issueDto.Labels != null)
+            {
               //Prevents a null reference exception when adding the labels
               issue.Labels = new List<Label>();
 
               issue = await InsertLabels(issue, issueDto.Labels);
-          }
+            }
 
+            issue = await InsertIssue(issue, projectId);
 
+            await _context.CompleteAsync();
 
-          await _context.CompleteAsync();
-
-          return CreatedAtAction("GetIssue", new { id = issue.Id }, issue);
+            return CreatedAtAction("GetIssue", new { id = issue.Id, projectId }, issue);
         }
 
         // DELETE: api/Issue/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteIssue(int id)
+        public async Task<IActionResult> DeleteIssue(int id, int projectId)
         {
+            if (!ProjectExists(projectId))
+            {
+                return NotFound("Project not found");
+            }
+            
             if (!(await _context.Issues.GetAllAsync()).Any())
             {
                 return NotFound();
@@ -184,6 +199,26 @@ namespace PDBT.Controllers
                     
             }
 
+            return issue;
+        }
+        
+        private async Task<Project?> RetrieveProject(int id)
+        {
+            var project = await _context.Projects.GetByIdAsync(id);
+
+            if (project == null)
+                return null;
+            
+            return project;
+        }
+
+        private async Task<Issue?> InsertIssue(Issue issue,int projectId)
+        {
+            var rootProject = await RetrieveProject(projectId);
+            issue.RootProjectID = projectId;
+            issue.RootProject = rootProject!;
+            rootProject!.Issues.Add(issue);
+            
             return issue;
         }
         
