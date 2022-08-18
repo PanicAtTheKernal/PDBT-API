@@ -6,7 +6,7 @@ using PDBT.Repository;
 
 namespace PDBT.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/{projectId}/[controller]")]
     [ApiController]
     public class IssueController : ControllerBase
     {
@@ -19,11 +19,16 @@ namespace PDBT.Controllers
 
         // GET: api/Issue
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Issue>>> GetIssues()
+        public async Task<ActionResult<IEnumerable<Issue>>> GetIssues(int projectId)
         {
+            if (!ProjectExists(projectId))
+            {
+                return NotFound("Project not found");
+            }
+            
             var enumerable = await _context.Issues.GetAllAsync();
 
-            var issues = enumerable.ToList();
+            var issues = enumerable.Where(i => i.RootProjectID == projectId).ToList();
             if (!issues.Any())
             {
                 return NotFound();
@@ -34,11 +39,16 @@ namespace PDBT.Controllers
 
         // GET: api/Issue/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Issue>> GetIssue(int id)
+        public async Task<ActionResult<Issue>> GetIssue(int id, int projectId)
         {
+            if (!ProjectExists(projectId))
+            {
+                return NotFound("Project not found");
+            }
+            
             var issue = await _context.Issues.GetByIdAsync(id);
 
-            if (issue == null)
+            if (issue == null || issue.RootProjectID != projectId)
             {
                 return NotFound();
             }
@@ -175,6 +185,11 @@ namespace PDBT.Controllers
             }
 
             return issue;
+        }
+        
+        private bool ProjectExists(int id)
+        {
+            return _context.Projects.GetAll().Any(e => e.Id == id);
         }
         
         private bool IssueExists(int id)
