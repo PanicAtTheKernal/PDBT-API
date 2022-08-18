@@ -15,6 +15,7 @@ public class User
     public DateTime? VerifiedAt { get; set; }
     public string? PasswordResetToken { get; set; }
     public DateTime? ResetTokenExpires { get; set; }
+    [JsonIgnore]
     public ICollection<Project> Projects { get; set; }
     public ICollection<Issue> AssignedIssues { get; set; }
 }
