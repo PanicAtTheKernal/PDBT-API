@@ -43,9 +43,10 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
         return _context.Set<T>().ToList();
     }
 
-    public virtual void Update(T entity)
+    public virtual async Task<bool> Update(T entity)
     {
         _context.Entry(entity).State = EntityState.Modified;
+        return true;
     }
     
     public virtual async Task<IEnumerable<T>> GetAllAsync()

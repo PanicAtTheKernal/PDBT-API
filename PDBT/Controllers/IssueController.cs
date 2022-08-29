@@ -21,7 +21,7 @@ namespace PDBT.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Issue>>> GetIssues(int projectId)
         {
-            if (!ProjectExists(projectId))
+            if (! await ProjectExists(projectId))
             {
                 return NotFound("Project not found");
             }
@@ -41,7 +41,7 @@ namespace PDBT.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Issue>> GetIssue(int id, int projectId)
         {
-            if (!ProjectExists(projectId))
+            if (! await ProjectExists(projectId))
             {
                 return NotFound("Project not found");
             }
@@ -61,10 +61,6 @@ namespace PDBT.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutIssue(int id, IssueDTO issueDto, int projectId)
         {
-            if (!ProjectExists(projectId))
-            {
-                return NotFound("Project not found");
-            }
             
             if (id != issueDto.Id)
             {
@@ -72,8 +68,18 @@ namespace PDBT.Controllers
             }
 
             var issue = DtoToIssue(issueDto);
+
+            await _context.Issues.Update(issue);
+
+            if (! await ProjectExists(projectId))
+            {
+                return NotFound("Project not found");
+            }
             
-            _context.Issues.Update(issue);
+            if (issue.RootProjectID != projectId)
+            {
+                return BadRequest("Invaild ProjectId");
+            }
             
             if (issueDto.Labels != null)
             {
@@ -107,7 +113,7 @@ namespace PDBT.Controllers
         [HttpPost]
         public async Task<ActionResult<Issue>> PostIssue(IssueDTO issueDto, int projectId)
         {
-            if (!ProjectExists(projectId))
+            if (! await ProjectExists(projectId))
             {
                 return NotFound("Project not found");
             }
@@ -140,7 +146,7 @@ namespace PDBT.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteIssue(int id, int projectId)
         {
-            if (!ProjectExists(projectId))
+            if (! await ProjectExists(projectId))
             {
                 return NotFound("Project not found");
             }
@@ -171,7 +177,8 @@ namespace PDBT.Controllers
                 Type = issueDto.Type,
                 Priority = issueDto.Priority,
                 DueDate = issueDto.DueDate,
-                TimeForCompletion = issueDto.TimeForCompletion
+                TimeForCompletion = issueDto.TimeForCompletion,
+                RootProjectID = issueDto.RootProjectID
             };
         
         private async Task<Label?> RetrieveLabel(int id)
@@ -222,9 +229,9 @@ namespace PDBT.Controllers
             return issue;
         }
         
-        private bool ProjectExists(int id)
+        private async Task<bool> ProjectExists(int id)
         {
-            return _context.Projects.GetAll().Any(e => e.Id == id);
+            return (await _context.Projects.GetAllAsync()).Any(e => e.Id == id);
         }
         
         private bool IssueExists(int id)

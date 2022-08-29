@@ -10,4 +10,5 @@ public class IssueDTO
     public DateTime? TimeForCompletion { get; set; }
     public DateTime? DueDate { get; set; }
     public ICollection<LabelDTO>? Labels { get; set; }
+    public int RootProjectID { get; set; }
 }
