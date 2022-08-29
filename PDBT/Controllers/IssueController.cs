@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PDBT.Data;
@@ -7,7 +8,7 @@ using PDBT.Repository;
 namespace PDBT.Controllers
 {
     [Route("api/{projectId}/[controller]")]
-    [ApiController]
+    [ApiController, Authorize]
     public class IssueController : ControllerBase
     {
         private readonly IUnitOfWork _context;
