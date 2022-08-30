@@ -81,9 +81,75 @@ namespace PDBT.Controllers
             }
 
             string token = CreateToken(user);
+
+            var refreshToken = GenerateRefreshToken();
+            SetRefreshToken(refreshToken, user.Id);
+
+            await _context.CompleteAsync();
             
             return Ok(token);
         }
+
+        [HttpPost("refresh-token")]
+        public async Task<ActionResult<RefreshTokenDTO>> RefreshToken()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+            var userId = Request.Cookies["userId"];
+            User user = await _context.Users.GetByIdAsync(int.Parse(userId));
+
+            if (!user.RefreshToken.Equals(refreshToken))
+            {
+                return Unauthorized("Invalid Refresh Token");
+            }
+            
+            if(user.RefreshTokenExpires < DateTime.Now)
+            {
+                return Unauthorized("Token expired");
+            }
+
+            string token = CreateToken(user);
+            var newRefreshToken = GenerateRefreshToken();
+            SetRefreshToken(newRefreshToken, user.Id);
+            var response = new RefreshTokenDTO()
+            {
+                JWT = token,
+                Token = newRefreshToken.Token,
+                Expries = newRefreshToken.Expries
+            };
+
+            await _context.CompleteAsync();
+
+            return Ok(response);
+        }
+        
+        private async void  SetRefreshToken(RefreshToken refreshToken, int userId)
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = refreshToken.Expries
+            };
+            
+            Response.Cookies.Append("refreshToken", refreshToken.Token,cookieOptions);
+            Response.Cookies.Append("userId", userId.ToString(), cookieOptions);
+
+            var user = await _context.Users.GetByIdAsync(userId);
+            user.RefreshToken = refreshToken.Token;
+            user.RefreshTokenCreated = refreshToken.Created;
+            user.RefreshTokenExpires = refreshToken.Expries;
+
+            await _context.Users.Update(user);
+            
+        }
+
+        private RefreshToken GenerateRefreshToken() => 
+            new()
+            {
+                Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+                Expries = DateTime.Now.AddDays(7),
+                Created = DateTime.Now
+            };
+        
 
         private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
         {

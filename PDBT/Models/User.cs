@@ -11,10 +11,9 @@ public class User
     public string LastName { get; set; } = null!;
     public byte[] PasswordHash { get; set; } = new byte[32];
     public byte[] PasswordSalt { get; set; } = new byte[32];
-    public string? VerificationToken { get; set; }
-    public DateTime? VerifiedAt { get; set; }
-    public string? PasswordResetToken { get; set; }
-    public DateTime? ResetTokenExpires { get; set; }
+    public string? RefreshToken { get; set; }
+    public DateTime? RefreshTokenCreated { get; set; }
+    public DateTime? RefreshTokenExpires { get; set; }
     [JsonIgnore]
     public ICollection<Project> Projects { get; set; }
     public ICollection<Issue> AssignedIssues { get; set; }

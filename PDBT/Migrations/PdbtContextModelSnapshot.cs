@@ -166,25 +166,22 @@ namespace PDBT.Migrations
                         .IsRequired()
                         .HasColumnType("longblob");
 
-                    b.Property<string>("PasswordResetToken")
-                        .HasColumnType("longtext");
-
                     b.Property<byte[]>("PasswordSalt")
                         .IsRequired()
                         .HasColumnType("longblob");
 
-                    b.Property<DateTime?>("ResetTokenExpires")
+                    b.Property<string>("RefreshToken")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("RefreshTokenCreated")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("RefreshTokenExpires")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasColumnType("longtext");
-
-                    b.Property<string>("VerificationToken")
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime?>("VerifiedAt")
-                        .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
 

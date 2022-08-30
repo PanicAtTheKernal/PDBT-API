@@ -170,7 +170,7 @@ namespace PDBT.Controllers
         }
 
         private Issue DtoToIssue(IssueDTO issueDto) =>
-            new Issue()
+            new()
             {
                 Id = issueDto.Id,
                 IssueName = issueDto.IssueName,
