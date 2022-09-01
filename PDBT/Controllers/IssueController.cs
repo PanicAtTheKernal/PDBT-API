@@ -27,6 +27,11 @@ namespace PDBT.Controllers
                 return NotFound("Project not found");
             }
             
+            if (!await verifyUser(projectId))
+            {
+                return Forbid();
+            }
+            
             var enumerable = await _context.Issues.GetAllAsync();
 
             var issues = enumerable.Where(i => i.RootProjectID == projectId).ToList();
@@ -45,6 +50,11 @@ namespace PDBT.Controllers
             if (! await ProjectExists(projectId))
             {
                 return NotFound("Project not found");
+            }
+            
+            if (!await verifyUser(projectId))
+            {
+                return Forbid();
             }
             
             var issue = await _context.Issues.GetByIdAsync(id);
@@ -75,6 +85,11 @@ namespace PDBT.Controllers
             if (! await ProjectExists(projectId))
             {
                 return NotFound("Project not found");
+            }
+            
+            if (!await verifyUser(projectId))
+            {
+                return Forbid();
             }
             
             if (issue.RootProjectID != projectId)
@@ -119,6 +134,11 @@ namespace PDBT.Controllers
                 return NotFound("Project not found");
             }
 
+            if (!await verifyUser(projectId))
+            {
+                return Forbid();
+            }
+            
             if (!(await _context.Issues.GetAllAsync()).Any())
             {
               return Problem("Entity set 'PdbtContext.Issues'  is null.");
@@ -150,6 +170,11 @@ namespace PDBT.Controllers
             if (! await ProjectExists(projectId))
             {
                 return NotFound("Project not found");
+            }
+
+            if (!await verifyUser(projectId))
+            {
+                return Forbid();
             }
             
             if (!(await _context.Issues.GetAllAsync()).Any())
@@ -228,6 +253,23 @@ namespace PDBT.Controllers
             rootProject!.Issues.Add(issue);
             
             return issue;
+        }
+        
+        private async Task<bool> verifyUser(int projectId)
+        {
+            var project = await _context.Projects.GetByIdAsync(projectId);
+            
+            if (User?.Identity?.Name != null)
+            {
+                var authUserId = Int32.Parse(User.Identity.Name);
+                var authUser = await _context.Users.GetByIdAsync(authUserId);
+
+                if (project.Users.Contains(authUser))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
         
         private async Task<bool> ProjectExists(int id)

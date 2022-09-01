@@ -31,12 +31,22 @@ namespace PDBT.Controllers
             var enumerable = await _context.Projects.GetAllAsync();
 
             var projects = enumerable.ToList();
+            var projectsWithUser = new List<Project>();
+
+            foreach (var project in projects)
+            {
+                if (await verifyUser(project))
+                {
+                    projectsWithUser.Add(project);
+                }
+            }
+            
             if (!projects.Any())
             {
                 return NotFound();
             }
 
-            return projects;
+            return projectsWithUser;
         }
 
         // GET: api/Project/5
@@ -48,6 +58,11 @@ namespace PDBT.Controllers
             if (project == null)
             {
                 return NotFound();
+            }
+
+            if (!await verifyUser(project))
+            {
+                return Forbid();
             }
             
             return project;

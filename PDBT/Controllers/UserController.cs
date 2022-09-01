@@ -95,9 +95,15 @@ namespace PDBT.Controllers
         {
             var refreshToken = Request.Cookies["refreshToken"];
             var userId = Request.Cookies["userId"];
-            User user = await _context.Users.GetByIdAsync(int.Parse(userId));
 
-            if (!user.RefreshToken.Equals(refreshToken))
+            if (refreshToken == null)
+            {
+                return Unauthorized("Refresh Token missing");
+            }
+            
+            User user = await _context.Users.GetByIdAsync(int.Parse(userId!));
+
+            if (!user.RefreshToken!.Equals(refreshToken))
             {
                 return Unauthorized("Invalid Refresh Token");
             }
