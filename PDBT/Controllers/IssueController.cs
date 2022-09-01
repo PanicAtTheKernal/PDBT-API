@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PDBT.Data;
 using PDBT.Models;
 using PDBT.Repository;
+using PDBT.Services.ProjectService;
 
 namespace PDBT.Controllers
 {
@@ -12,49 +13,42 @@ namespace PDBT.Controllers
     public class IssueController : ControllerBase
     {
         private readonly IUnitOfWork _context;
+        private readonly IIssueService _issueService;
+        private readonly IProjectService _projectService;
 
-        public IssueController(IUnitOfWork unitOfWork)
+        public IssueController(IUnitOfWork unitOfWork, IIssueService issueService, IProjectService projectService)
         {
             _context = unitOfWork;
+            _issueService = issueService;
+            _projectService = projectService;
         }
 
         // GET: api/Issue
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Issue>>> GetIssues(int projectId)
         {
-            if (! await ProjectExists(projectId))
+            var response = await _projectService.ValidateUserAndProjectId(projectId);
+            if (!response.Success)
             {
-                return NotFound("Project not found");
+                return response.Data!;
             }
-            
-            if (!await verifyUser(projectId))
-            {
-                return Forbid();
-            }
-            
-            var enumerable = await _context.Issues.GetAllAsync();
 
-            var issues = enumerable.Where(i => i.RootProjectID == projectId).ToList();
-            if (!issues.Any())
-            {
+            var issuesResponse = await _issueService.GetAllIssue(projectId);
+
+            if (!issuesResponse.Success)
                 return NotFound();
-            }
 
-            return issues;
+            return Ok(issuesResponse.Data);
         }
 
         // GET: api/Issue/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Issue>> GetIssue(int id, int projectId)
         {
-            if (! await ProjectExists(projectId))
+            var response = await _projectService.ValidateUserAndProjectId(projectId);
+            if (!response.Success)
             {
-                return NotFound("Project not found");
-            }
-            
-            if (!await verifyUser(projectId))
-            {
-                return Forbid();
+                return response.Data!;
             }
             
             var issue = await _context.Issues.GetByIdAsync(id);
@@ -82,14 +76,10 @@ namespace PDBT.Controllers
 
             await _context.Issues.Update(issue);
 
-            if (! await ProjectExists(projectId))
+            var response = await _projectService.ValidateUserAndProjectId(projectId);
+            if (!response.Success)
             {
-                return NotFound("Project not found");
-            }
-            
-            if (!await verifyUser(projectId))
-            {
-                return Forbid();
+                return response.Data!;
             }
             
             if (issue.RootProjectID != projectId)
@@ -129,14 +119,10 @@ namespace PDBT.Controllers
         [HttpPost]
         public async Task<ActionResult<Issue>> PostIssue(IssueDTO issueDto, int projectId)
         {
-            if (! await ProjectExists(projectId))
+            var response = await _projectService.ValidateUserAndProjectId(projectId);
+            if (!response.Success)
             {
-                return NotFound("Project not found");
-            }
-
-            if (!await verifyUser(projectId))
-            {
-                return Forbid();
+                return response.Data!;
             }
             
             if (!(await _context.Issues.GetAllAsync()).Any())
@@ -167,14 +153,10 @@ namespace PDBT.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteIssue(int id, int projectId)
         {
-            if (! await ProjectExists(projectId))
+            var response = await _projectService.ValidateUserAndProjectId(projectId);
+            if (!response.Success)
             {
-                return NotFound("Project not found");
-            }
-
-            if (!await verifyUser(projectId))
-            {
-                return Forbid();
+                return response.Data!;
             }
             
             if (!(await _context.Issues.GetAllAsync()).Any())
@@ -254,29 +236,7 @@ namespace PDBT.Controllers
             
             return issue;
         }
-        
-        private async Task<bool> verifyUser(int projectId)
-        {
-            var project = await _context.Projects.GetByIdAsync(projectId);
-            
-            if (User?.Identity?.Name != null)
-            {
-                var authUserId = Int32.Parse(User.Identity.Name);
-                var authUser = await _context.Users.GetByIdAsync(authUserId);
 
-                if (project.Users.Contains(authUser))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-        
-        private async Task<bool> ProjectExists(int id)
-        {
-            return (await _context.Projects.GetAllAsync()).Any(e => e.Id == id);
-        }
-        
         private bool IssueExists(int id)
         {
             return _context.Issues.GetAll().Any(e => e.Id == id);

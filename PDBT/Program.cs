@@ -1,3 +1,5 @@
+global using PDBT.Services.IssueService; 
+global using PDBT.Services.ProjectService;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +30,9 @@ builder.Services.AddDbContext<PdbtContext>(opt => opt
     .LogTo(Console.WriteLine, LogLevel.Information)
     .EnableSensitiveDataLogging()
     .EnableDetailedErrors());
+builder.Services.AddScoped<IIssueService, IssueService>();
+builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddHttpContextAccessor();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
