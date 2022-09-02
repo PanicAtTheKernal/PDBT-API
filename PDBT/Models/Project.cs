@@ -7,4 +7,5 @@ public class Project
     public string Description { get; set; } = null!;
     public ICollection<Issue> Issues { get; set; }
     public ICollection<User> Users { get; set; }
+    public ICollection<Label> Labels { get; set; }
 }

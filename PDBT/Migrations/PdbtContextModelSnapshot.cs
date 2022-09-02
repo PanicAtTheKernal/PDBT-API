@@ -99,7 +99,12 @@ namespace PDBT.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<int>("RootProjectId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("RootProjectId");
 
                     b.ToTable("Labels");
                 });
@@ -244,6 +249,17 @@ namespace PDBT.Migrations
                     b.Navigation("RootProject");
                 });
 
+            modelBuilder.Entity("PDBT.Models.Label", b =>
+                {
+                    b.HasOne("PDBT.Models.Project", "RootProject")
+                        .WithMany("Labels")
+                        .HasForeignKey("RootProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RootProject");
+                });
+
             modelBuilder.Entity("PDBT.Models.LinkedIssue", b =>
                 {
                     b.HasOne("PDBT.Models.Issue", "Issue")
@@ -278,6 +294,8 @@ namespace PDBT.Migrations
             modelBuilder.Entity("PDBT.Models.Project", b =>
                 {
                     b.Navigation("Issues");
+
+                    b.Navigation("Labels");
                 });
 #pragma warning restore 612, 618
         }

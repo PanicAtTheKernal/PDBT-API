@@ -8,24 +8,6 @@ namespace PDBT.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "PasswordResetToken",
-                table: "Users");
-
-            migrationBuilder.RenameColumn(
-                name: "VerifiedAt",
-                table: "Users",
-                newName: "RefreshTokenExpires");
-
-            migrationBuilder.RenameColumn(
-                name: "VerificationToken",
-                table: "Users",
-                newName: "RefreshToken");
-
-            migrationBuilder.RenameColumn(
-                name: "ResetTokenExpires",
-                table: "Users",
-                newName: "RefreshTokenCreated");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)

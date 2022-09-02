@@ -8,4 +8,6 @@ public class Label
     public string Name { get; set; } = null!;
     [JsonIgnore]
     public ICollection<Issue> Issues { get; set; }
+
+    [JsonIgnore] public Project RootProject { get; set; } = null!;
 }

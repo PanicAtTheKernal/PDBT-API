@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PDBT.Data;
 using PDBT.Models;
 using PDBT.Repository;
+using PDBT.Services.LabelService;
 using PDBT.Services.ProjectService;
 
 namespace PDBT.Controllers
@@ -15,12 +16,15 @@ namespace PDBT.Controllers
         private readonly IUnitOfWork _context;
         private readonly IIssueService _issueService;
         private readonly IProjectService _projectService;
+        private readonly ILabelService _labelService;
 
-        public IssueController(IUnitOfWork unitOfWork, IIssueService issueService, IProjectService projectService)
+        public IssueController(IUnitOfWork unitOfWork, IIssueService issueService, IProjectService projectService,
+            ILabelService labelService)
         {
             _context = unitOfWork;
             _issueService = issueService;
             _projectService = projectService;
+            _labelService = labelService;
         }
 
         // GET: api/Issue
@@ -28,17 +32,11 @@ namespace PDBT.Controllers
         public async Task<ActionResult<IEnumerable<Issue>>> GetIssues(int projectId)
         {
             var response = await _projectService.ValidateUserAndProjectId(projectId);
-            if (!response.Success)
-            {
-                return response.Data!;
-            }
+            if (!response.Success) return response.Data!;
 
             var issuesResponse = await _issueService.GetAllIssue(projectId);
 
-            if (!issuesResponse.Success)
-                return NotFound();
-
-            return Ok(issuesResponse.Data);
+            return issuesResponse.Result;
         }
 
         // GET: api/Issue/5
@@ -46,72 +44,32 @@ namespace PDBT.Controllers
         public async Task<ActionResult<Issue>> GetIssue(int id, int projectId)
         {
             var response = await _projectService.ValidateUserAndProjectId(projectId);
-            if (!response.Success)
-            {
-                return response.Data!;
-            }
+            if (!response.Success) return response.Data!;
             
-            var issue = await _context.Issues.GetByIdAsync(id);
+            var issueResponse = await _issueService.GetIssueById(id, projectId);
 
-            if (issue == null || issue.RootProjectID != projectId)
-            {
-                return NotFound();
-            }
-            
-            return issue;
+            return issueResponse.Result;
         }
 
         // PUT: api/Issue/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutIssue(int id, IssueDTO issueDto, int projectId)
+        public async Task<ActionResult<Issue>> PutIssue(int id, IssueDTO issueDto, int projectId)
         {
-            
-            if (id != issueDto.Id)
-            {
-                return BadRequest();
-            }
-
-            var issue = DtoToIssue(issueDto);
-
-            await _context.Issues.Update(issue);
-
             var response = await _projectService.ValidateUserAndProjectId(projectId);
-            if (!response.Success)
-            {
-                return response.Data!;
-            }
-            
-            if (issue.RootProjectID != projectId)
-            {
-                return BadRequest("Invaild ProjectId");
-            }
-            
+            if (!response.Success) return response.Data!;
+
+            var issueResponse = await _issueService.ConvertDto(id, issueDto, projectId);
+            if (!issueResponse.Success) return issueResponse.Result;
+
             if (issueDto.Labels != null)
             {
-                // Need to retrive list of current labels to prevent duplicate entries
-                issue = await _context.Issues.GetByIdAsync(id);
-
-                await InsertLabels(issue, issueDto.Labels);
-            }
-
-            try
-            {
-                await _context.CompleteAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!IssueExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
+                issueResponse = await _labelService.UpdateLabelsInIssue(issueResponse.Data, issueDto.Labels);
+            } 
+            
+            await _issueService.UpdateIssue(issueResponse.Data);
+            issueResponse = await _issueService.SaveChanges(id);
+            return issueResponse.Result;
         }
 
         // POST: api/Issue
@@ -130,23 +88,24 @@ namespace PDBT.Controllers
               return Problem("Entity set 'PdbtContext.Issues'  is null.");
             }
 
-            var issue = DtoToIssue(issueDto);
+            // var issue = DtoToIssue(issueDto);
 
-            _context.Issues.Add(issue);
-
-            if (issueDto.Labels != null)
-            {
-              //Prevents a null reference exception when adding the labels
-              issue.Labels = new List<Label>();
-
-              issue = await InsertLabels(issue, issueDto.Labels);
-            }
-
-            issue = await InsertIssue(issue, projectId);
-
-            await _context.CompleteAsync();
-
-            return CreatedAtAction("GetIssue", new { id = issue.Id, projectId }, issue);
+        //     _context.Issues.Add(issue);
+        //
+        //     if (issueDto.Labels != null)
+        //     {
+        //       //Prevents a null reference exception when adding the labels
+        //       issue.Labels = new List<Label>();
+        //
+        //       // issue = await InsertLabels(issue, issueDto.Labels);
+        //     }
+        //
+        //     issue = await InsertIssue(issue, projectId);
+        //
+        //     await _context.CompleteAsync();
+        //
+            // return CreatedAtAction("GetIssue", new { id = issue.Id, projectId }, issue);
+            return Ok();
         }
 
         // DELETE: api/Issue/5
@@ -176,47 +135,6 @@ namespace PDBT.Controllers
             return NoContent();
         }
 
-        private Issue DtoToIssue(IssueDTO issueDto) =>
-            new()
-            {
-                Id = issueDto.Id,
-                IssueName = issueDto.IssueName,
-                Description = issueDto.Description,
-                Type = issueDto.Type,
-                Priority = issueDto.Priority,
-                DueDate = issueDto.DueDate,
-                TimeForCompletion = issueDto.TimeForCompletion,
-                RootProjectID = issueDto.RootProjectID
-            };
-        
-        private async Task<Label?> RetrieveLabel(int id)
-        {
-            var label = await _context.Labels.GetByIdAsync(id);
-
-            if (label == null)
-                return null;
-            
-            return label;
-        }
-
-        private async Task<Issue?> InsertLabels(Issue issue, ICollection<LabelDTO> labelsDtos)
-        {
-            foreach (var labelDto in labelsDtos)
-            {
-                var label = await RetrieveLabel(labelDto.Id);
-
-                if (label != null)
-                {
-                    if (issue.Labels.All(l => l.Id != label.Id))
-                        issue.Labels.Add(label);
-                }
-
-                    
-            }
-
-            return issue;
-        }
-        
         private async Task<Project?> RetrieveProject(int id)
         {
             var project = await _context.Projects.GetByIdAsync(id);
@@ -236,11 +154,5 @@ namespace PDBT.Controllers
             
             return issue;
         }
-
-        private bool IssueExists(int id)
-        {
-            return _context.Issues.GetAll().Any(e => e.Id == id);
-        }
-        
     }
 }
