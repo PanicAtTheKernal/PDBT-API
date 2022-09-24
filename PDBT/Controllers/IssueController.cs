@@ -31,6 +31,7 @@ namespace PDBT.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Issue>>> GetIssues(int projectId)
         {
+            // Returns 404 or 400 depending on the problem
             var response = await _projectService.ValidateUserAndProjectId(projectId);
             if (!response.Success) return response.Data!;
 
@@ -43,6 +44,7 @@ namespace PDBT.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Issue>> GetIssue(int id, int projectId)
         {
+            // Returns 404 or 400 depending on the problem
             var response = await _projectService.ValidateUserAndProjectId(projectId);
             if (!response.Success) return response.Data!;
             
@@ -56,6 +58,7 @@ namespace PDBT.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<Issue>> PutIssue(int id, IssueDTO issueDto, int projectId)
         {
+            // Returns 404 or 400 depending on the problem
             var response = await _projectService.ValidateUserAndProjectId(projectId);
             if (!response.Success) return response.Data!;
 
@@ -63,11 +66,9 @@ namespace PDBT.Controllers
             if (!issueResponse.Success) return issueResponse.Result;
 
             if (issueDto.Labels != null)
-            {
-                issueResponse = await _labelService.UpdateLabelsInIssue(issueResponse.Data, issueDto.Labels);
-            } 
-            
-            await _issueService.UpdateIssue(issueResponse.Data);
+                issueResponse = await _labelService.UpdateLabelsInIssue(issueResponse.Data!, issueDto.Labels);
+
+            await _issueService.UpdateIssue(issueResponse.Data!);
             issueResponse = await _issueService.SaveChanges(id);
             return issueResponse.Result;
         }
@@ -77,82 +78,34 @@ namespace PDBT.Controllers
         [HttpPost]
         public async Task<ActionResult<Issue>> PostIssue(IssueDTO issueDto, int projectId)
         {
+            // Returns 404 or 400 depending on the problem
             var response = await _projectService.ValidateUserAndProjectId(projectId);
-            if (!response.Success)
-            {
-                return response.Data!;
-            }
+            if (!response.Success) return response.Data!;
+
+            var issueResponse = await _issueService.ConvertDto(issueDto.Id, issueDto, projectId);
+            if (!issueResponse.Success) return issueResponse.Result;
+
+            issueResponse = await _issueService.AddIssue(issueResponse.Data!);
+
+            if (issueDto.Labels != null)
+                issueResponse = await _labelService.UpdateLabelsInIssue(issueResponse.Data!, issueDto.Labels);
+
+            issueResponse = await _projectService.InsertIssueIntoProject(issueResponse.Data!, projectId);
+            await _issueService.SaveChanges(issueResponse.Data!.Id);
             
-            if (!(await _context.Issues.GetAllAsync()).Any())
-            {
-              return Problem("Entity set 'PdbtContext.Issues'  is null.");
-            }
-
-            // var issue = DtoToIssue(issueDto);
-
-        //     _context.Issues.Add(issue);
-        //
-        //     if (issueDto.Labels != null)
-        //     {
-        //       //Prevents a null reference exception when adding the labels
-        //       issue.Labels = new List<Label>();
-        //
-        //       // issue = await InsertLabels(issue, issueDto.Labels);
-        //     }
-        //
-        //     issue = await InsertIssue(issue, projectId);
-        //
-        //     await _context.CompleteAsync();
-        //
-            // return CreatedAtAction("GetIssue", new { id = issue.Id, projectId }, issue);
-            return Ok();
+            return issueResponse.Data;
         }
 
         // DELETE: api/Issue/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteIssue(int id, int projectId)
+        public async Task<ActionResult<Issue>> DeleteIssue(int id, int projectId)
         {
+            // Returns 404 or 400 depending on the problem
             var response = await _projectService.ValidateUserAndProjectId(projectId);
-            if (!response.Success)
-            {
-                return response.Data!;
-            }
-            
-            if (!(await _context.Issues.GetAllAsync()).Any())
-            {
-                return NotFound();
-            }
+            if (!response.Success) return response.Data!;
 
-            var issue = await _context.Issues.GetByIdAsync(id);
-            if (issue == null)
-            {
-                return NotFound();
-            }
-
-            _context.Issues.Remove(issue);
-            await _context.CompleteAsync();
-
-            return NoContent();
-        }
-
-        private async Task<Project?> RetrieveProject(int id)
-        {
-            var project = await _context.Projects.GetByIdAsync(id);
-
-            if (project == null)
-                return null;
-            
-            return project;
-        }
-
-        private async Task<Issue?> InsertIssue(Issue issue,int projectId)
-        {
-            var rootProject = await RetrieveProject(projectId);
-            issue.RootProjectID = projectId;
-            issue.RootProject = rootProject!;
-            rootProject!.Issues.Add(issue);
-            
-            return issue;
+            var results = await _issueService.DeleteIssue(id, projectId);
+            return results.Result;
         }
     }
 }

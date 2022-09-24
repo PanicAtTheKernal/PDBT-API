@@ -74,8 +74,15 @@ public class IssueService : IIssueService
         
         var issue = DtoToIssue(issueDto);
 
-        // Retrieve the fully updated issue as the dto is only partially updated
-        response.Data = await _context.Issues.GetByIdAsync(issue.Id);
+        if (IssueExists(issue.Id))
+        {
+            // Retrieve the fully updated issue as the dto is only partially updated. Used for the put method
+            response.Data = await _context.Issues.GetByIdAsync(issue.Id);
+        }
+        else
+        {
+            response.Data = issue;
+        }
         response.Result = new OkObjectResult(response.Data);
 
         return response;
@@ -90,6 +97,29 @@ public class IssueService : IIssueService
         response.Result = new OkObjectResult(response.Data);
 
         return response;
+    }
+
+    public async Task<ServiceResponse<Issue>> AddIssue(Issue issue)
+    {
+        _context.Issues.AddAsync(issue);
+        issue.Labels = new List<Label>();
+        
+        return new ServiceResponse<Issue>
+        {
+            Data = issue,
+            Result = new OkObjectResult(issue),
+            Success = true
+        };
+    }
+
+    public async Task<ServiceResponse<Issue>> DeleteIssue(int id, int projectId)
+    {
+        var issueToDel = await GetIssueById(id, projectId);
+        if (!issueToDel.Success) return issueToDel;
+
+        _context.Issues.Remove(issueToDel.Data);
+        await SaveChanges(issueToDel.Data.Id);
+        return issueToDel;
     }
 
     public async Task<ServiceResponse<Issue>> SaveChanges(int id)

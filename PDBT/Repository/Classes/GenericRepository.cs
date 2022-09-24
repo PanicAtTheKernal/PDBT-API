@@ -27,6 +27,11 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
         _context.Set<T>().Add(entity);
     }
 
+    public void AddAsync(T entity)
+    {
+        _context.Set<T>().AddAsync(entity);
+    }
+    
     public void AddRange(IEnumerable<T> entities)
     {
         _context.Set<T>().AddRange(entities);

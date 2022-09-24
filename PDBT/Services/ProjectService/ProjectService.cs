@@ -41,6 +41,23 @@ public class ProjectService: IProjectService
         return false;
     }
 
+    public async Task<ServiceResponse<Project>> GetProjectById(int projectId)
+    {
+        var project = await _context.Projects.GetByIdAsync(projectId);
+        var response = new ServiceResponse<Project>();
+
+        if (project == null)
+        {
+            response.Success = false;
+            response.Result = new NotFoundResult();
+            return response;
+        }
+
+        response.Data = project;
+        response.Result = new OkObjectResult(project);
+        return response;
+    }
+
     public async Task<ServiceResponse<ActionResult>> ValidateUserAndProjectId(int projectId)
     {
         var respone = new ServiceResponse<ActionResult>();
@@ -60,5 +77,28 @@ public class ProjectService: IProjectService
         }
         
         return respone;
+    }
+
+    public async Task<ServiceResponse<Issue>> InsertIssueIntoProject(Issue issue, int projectId)
+    {
+        var rootProject = await GetProjectById(projectId);
+
+        if (!rootProject.Success)
+            return new ServiceResponse<Issue>()
+            {
+                Result = new NotFoundResult(),
+                Success = false
+            };
+            
+        issue.RootProjectID = projectId;
+        issue.RootProject = rootProject.Data!;
+        rootProject.Data!.Issues.Add(issue);
+        
+        return new ServiceResponse<Issue>()
+        {
+            Data = issue,
+            Result = new OkObjectResult(issue),
+            Success = true
+        };
     }
 }
