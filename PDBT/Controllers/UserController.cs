@@ -87,7 +87,7 @@ namespace PDBT.Controllers
 
             await _context.CompleteAsync();
             
-            return Ok(token);
+            return  new OkObjectResult(token);
         }
 
         [HttpPost("refresh-token")]
@@ -132,7 +132,9 @@ namespace PDBT.Controllers
         {
             var cookieOptions = new CookieOptions
             {
-                HttpOnly = true,
+                IsEssential = true,
+                Secure = false,
+                HttpOnly = false,
                 Expires = refreshToken.Expries
             };
             
