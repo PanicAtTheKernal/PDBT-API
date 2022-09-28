@@ -9,6 +9,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.IdentityModel.Tokens;
 
 namespace PDBT.Services.UserService;
 
@@ -63,6 +64,39 @@ public class UserService: IUserService
         
         return response;
 }
+
+    public async Task<ServiceResponse<string>> Login(UserDTO loginRequest)
+    {
+        var response = new ServiceResponse<string>();
+
+        if (await IsEmailRegistered(loginRequest.Email))
+        {
+            response.Result = new BadRequestObjectResult("User does not exist");
+            response.Success = false;
+            return response;
+        }
+        
+        var user = _context.Users.Find(u => u.Email == loginRequest.Email).FirstOrDefault();
+            
+        if (!VerifyPasswordHash(loginRequest.Password, user.PasswordHash, user.PasswordSalt))
+        {
+            response.Result = new BadRequestObjectResult("Incorrect Password");
+            response.Success = false;
+            return response;
+        }
+        
+        string token = CreateToken(user);
+        
+        var refreshToken = GenerateRefreshToken();
+        SetRefreshToken(refreshToken, user.Id);
+
+        await _context.CompleteAsync();
+
+        response.Data = token;
+        response.Result = new OkObjectResult(token);
+        
+        return response;
+    }
 
     // Returns true if registered
     private async Task<bool> IsEmailRegistered(string email)

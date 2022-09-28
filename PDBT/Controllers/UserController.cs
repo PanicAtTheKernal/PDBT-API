@@ -35,27 +35,8 @@ namespace PDBT.Controllers
         [HttpPost("login")]
         public async Task<ActionResult<string>> Login(UserDTO request)
         {
-            
-            if (!await _context.Users.AnyAsync(u => u.Email == request.Email))
-            {
-                return BadRequest("User does not exist");
-            }
-
-            var user = _context.Users.Find(u => u.Email == request.Email).FirstOrDefault();
-            
-            if (!VerifyPasswordHash(request.Password, user.PasswordHash, user.PasswordSalt))
-            {
-                return BadRequest("Password is wrong");
-            }
-
-            string token = CreateToken(user);
-
-            var refreshToken = GenerateRefreshToken();
-            SetRefreshToken(refreshToken, user.Id);
-
-            await _context.CompleteAsync();
-            
-            return  new OkObjectResult(token);
+            var response = await _userService.Login(request);
+            return response.Result;
         }
 
         [HttpPost("refresh-token")]
