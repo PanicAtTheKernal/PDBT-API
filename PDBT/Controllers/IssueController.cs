@@ -13,15 +13,13 @@ namespace PDBT.Controllers
     [ApiController, Authorize]
     public class IssueController : ControllerBase
     {
-        private readonly IUnitOfWork _context;
         private readonly IIssueService _issueService;
         private readonly IProjectService _projectService;
         private readonly ILabelService _labelService;
 
-        public IssueController(IUnitOfWork unitOfWork, IIssueService issueService, IProjectService projectService,
+        public IssueController(IssueService issueService, IProjectService projectService,
             ILabelService labelService)
         {
-            _context = unitOfWork;
             _issueService = issueService;
             _projectService = projectService;
             _labelService = labelService;
