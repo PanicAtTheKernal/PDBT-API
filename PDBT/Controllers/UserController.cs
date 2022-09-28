@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PDBT.Models;
 using PDBT.Repository;
@@ -36,7 +37,12 @@ namespace PDBT.Controllers
             var result = await _userService.RefreshToken(Request, Response);
             return result.Result;
         }
-        
 
+        [HttpGet("{id}"), Authorize]
+        public async Task<ActionResult<User>> GetUserById(int id)
+        {
+            var result = await _userService.GetUserById(id);
+            return result.Result;
+        }
     }
 }

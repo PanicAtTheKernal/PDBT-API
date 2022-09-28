@@ -144,6 +144,23 @@ public class UserService: IUserService
         return response;
     }
 
+    public async Task<ServiceResponse<User>> GetUserById(int id)
+    {
+        var user = await _context.Users.GetByIdAsync(id);
+        var response = new ServiceResponse<User>();
+
+        if (user == null)
+        {
+            response.Success = false;
+            response.Result = new NotFoundResult();
+            return response;
+        }
+
+        response.Data = user;
+        response.Result = new OkObjectResult(user);
+        return response;
+    }
+
     // Returns true if registered
     private async Task<bool> IsEmailRegistered(string email)
     {
