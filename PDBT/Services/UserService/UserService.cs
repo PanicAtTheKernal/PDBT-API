@@ -65,7 +65,7 @@ public class UserService: IUserService
         return response;
 }
 
-    public async Task<ServiceResponse<string>> Login(UserDTO loginRequest)
+    public async Task<ServiceResponse<string>> Login(UserDTO loginRequest, HttpResponse httpResponse)
     {
         var response = new ServiceResponse<string>();
 
@@ -88,12 +88,58 @@ public class UserService: IUserService
         string token = CreateToken(user);
         
         var refreshToken = GenerateRefreshToken();
-        SetRefreshToken(refreshToken, user.Id);
+        SetRefreshToken(refreshToken, user.Id, httpResponse);
 
         await _context.CompleteAsync();
 
         response.Data = token;
         response.Result = new OkObjectResult(token);
+        
+        return response;
+    }
+
+    public async Task<ServiceResponse<RefreshTokenDTO>> RefreshToken(HttpRequest httpRequest, HttpResponse httpResponse)
+    {
+        var response = new ServiceResponse<RefreshTokenDTO>();
+        var refreshToken = httpRequest.Cookies["refreshToken"];
+        var userId = httpRequest.Cookies["userId"];
+
+        if (refreshToken == null)
+        {
+            response.Result = new UnauthorizedObjectResult("Refresh Token missing");
+            response.Success = false;
+            return response;
+        }
+
+        User user = await _context.Users.GetByIdAsync(int.Parse(userId!));
+
+        if (!user.RefreshToken!.Equals(refreshToken))
+        {
+            response.Result = new UnauthorizedObjectResult("Invalid Refresh Token");
+            response.Success = false;
+            return response;
+        }
+            
+        if(user.RefreshTokenExpires < DateTime.Now)
+        {
+            response.Result = new UnauthorizedObjectResult("Token expired");
+            response.Success = false;
+            return response;
+        }
+        
+        string token = CreateToken(user);
+        var newRefreshToken = GenerateRefreshToken();
+        SetRefreshToken(newRefreshToken, user.Id, httpResponse);
+        var refresh = new RefreshTokenDTO()
+        {
+            JWT = token,
+            Token = newRefreshToken.Token,
+            Expries = newRefreshToken.Expries
+        };
+
+        await _context.CompleteAsync();
+        response.Data = refresh;
+        response.Result = new OkObjectResult(refresh);
         
         return response;
     }
@@ -111,7 +157,7 @@ public class UserService: IUserService
         return false;
     }
     
-    private async void SetRefreshToken(RefreshToken refreshToken, int userId)
+    private async Task<HttpResponse> SetRefreshToken(RefreshToken refreshToken, int userId, HttpResponse response)
     {
         var cookieOptions = new CookieOptions
         {
@@ -121,8 +167,8 @@ public class UserService: IUserService
             Expires = refreshToken.Expries
         };
         
-        Response.Cookies.Append("refreshToken", refreshToken.Token,cookieOptions);
-        Response.Cookies.Append("userId", userId.ToString(), cookieOptions);
+        response.Cookies.Append("refreshToken", refreshToken.Token,cookieOptions);
+        response.Cookies.Append("userId", userId.ToString(), cookieOptions);
 
         var user = await _context.Users.GetByIdAsync(userId);
         user.RefreshToken = refreshToken.Token;
@@ -130,7 +176,8 @@ public class UserService: IUserService
         user.RefreshTokenExpires = refreshToken.Expries;
 
         await _context.Users.Update(user);
-        
+
+        return response;
     }
 
     private RefreshToken GenerateRefreshToken() => 

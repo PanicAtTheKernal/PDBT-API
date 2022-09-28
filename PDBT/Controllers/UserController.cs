@@ -1,13 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 using PDBT.Models;
 using PDBT.Repository;
 using PDBT.Services.UserService;
@@ -35,46 +26,15 @@ namespace PDBT.Controllers
         [HttpPost("login")]
         public async Task<ActionResult<string>> Login(UserDTO request)
         {
-            var response = await _userService.Login(request);
-            return response.Result;
+            var result = await _userService.Login(request, Response);
+            return result.Result;
         }
 
         [HttpPost("refresh-token")]
         public async Task<ActionResult<RefreshTokenDTO>> RefreshToken()
         {
-            var refreshToken = Request.Cookies["refreshToken"];
-            var userId = Request.Cookies["userId"];
-
-            if (refreshToken == null)
-            {
-                return Unauthorized("Refresh Token missing");
-            }
-            
-            User user = await _context.Users.GetByIdAsync(int.Parse(userId!));
-
-            if (!user.RefreshToken!.Equals(refreshToken))
-            {
-                return Unauthorized("Invalid Refresh Token");
-            }
-            
-            if(user.RefreshTokenExpires < DateTime.Now)
-            {
-                return Unauthorized("Token expired");
-            }
-
-            string token = CreateToken(user);
-            var newRefreshToken = GenerateRefreshToken();
-            SetRefreshToken(newRefreshToken, user.Id);
-            var response = new RefreshTokenDTO()
-            {
-                JWT = token,
-                Token = newRefreshToken.Token,
-                Expries = newRefreshToken.Expries
-            };
-
-            await _context.CompleteAsync();
-
-            return Ok(response);
+            var result = await _userService.RefreshToken(Request, Response);
+            return result.Result;
         }
         
 
