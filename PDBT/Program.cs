@@ -8,6 +8,7 @@ using Microsoft.OpenApi.Models;
 using PDBT.Data;
 using PDBT.Repository;
 using PDBT.Services.LabelService;
+using PDBT.Services.UserService;
 using Swashbuckle.AspNetCore.Filters;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,8 +24,11 @@ builder.Services.AddTransient<ILabelRepository, LabelRepository>();
 builder.Services.AddTransient<IUnitOfWork, UnitOfWork>();
 #endregion
 
-
+#region Controllers
 builder.Services.AddControllers();
+#endregion
+
+#region Database context
 builder.Services.AddDbContext<PdbtContext>(opt => opt
     .UseMySql(builder.Configuration.GetConnectionString("PDBT"), serverVersion)
     .UseValidationCheckConstraints()
@@ -32,10 +36,17 @@ builder.Services.AddDbContext<PdbtContext>(opt => opt
     .LogTo(Console.WriteLine, LogLevel.Information)
     .EnableSensitiveDataLogging()
     .EnableDetailedErrors());
+#endregion
+
+#region Services
 builder.Services.AddScoped<IIssueService, IssueService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<ILabelService, LabelService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddHttpContextAccessor();
+#endregion
+
+#region Swagger
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -50,6 +61,9 @@ builder.Services.AddSwaggerGen(options =>
     
     options.OperationFilter<SecurityRequirementsOperationFilter>();
 });
+#endregion
+
+#region Security
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -71,6 +85,7 @@ builder.Services.AddCors(opt =>
             policy.AllowAnyHeader();
         });
 });
+#endregion
 
 var app = builder.Build();
 

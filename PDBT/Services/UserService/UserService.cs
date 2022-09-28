@@ -69,7 +69,7 @@ public class UserService: IUserService
     {
         var response = new ServiceResponse<string>();
 
-        if (await IsEmailRegistered(loginRequest.Email))
+        if (!(await IsEmailRegistered(loginRequest.Email)))
         {
             response.Result = new BadRequestObjectResult("User does not exist");
             response.Success = false;
