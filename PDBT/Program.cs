@@ -81,8 +81,10 @@ builder.Services.AddCors(opt =>
     opt.AddPolicy(name: MyAllowSpecificOrigins,
         policy =>
         {
-            policy.WithOrigins("*");
+            policy.WithOrigins("https://127.0.0.1:3000");
             policy.AllowAnyHeader();
+            policy.AllowAnyMethod();
+            policy.AllowCredentials();
         });
 });
 #endregion

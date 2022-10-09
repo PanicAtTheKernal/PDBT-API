@@ -65,9 +65,9 @@ public class UserService: IUserService
         return response;
 }
 
-    public async Task<ServiceResponse<string>> Login(UserDTO loginRequest, HttpResponse httpResponse)
+    public async Task<ServiceResponse<RefreshTokenDTO>> Login(UserDTO loginRequest, HttpResponse httpResponse)
     {
-        var response = new ServiceResponse<string>();
+        var response = new ServiceResponse<RefreshTokenDTO>();
 
         if (!(await IsEmailRegistered(loginRequest.Email)))
         {
@@ -92,8 +92,16 @@ public class UserService: IUserService
 
         await _context.CompleteAsync();
 
-        response.Data = token;
-        response.Result = new OkObjectResult(token);
+        var result = new RefreshTokenDTO()
+        {
+            Token = token,
+            Expries = refreshToken.Expries,
+            JWT = refreshToken.Token,
+            UserId = user.Id
+        };
+
+        response.Data = result;
+        response.Result = new OkObjectResult(result);
         
         return response;
     }
@@ -179,9 +187,10 @@ public class UserService: IUserService
         var cookieOptions = new CookieOptions
         {
             IsEssential = true,
-            Secure = false,
+            Secure = true,
             HttpOnly = false,
-            Expires = refreshToken.Expries
+            Expires = refreshToken.Expries,
+            SameSite = SameSiteMode.None
         };
         
         response.Cookies.Append("refreshToken", refreshToken.Token,cookieOptions);

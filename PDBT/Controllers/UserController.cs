@@ -25,7 +25,7 @@ namespace PDBT.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<ActionResult<string>> Login(UserDTO request)
+        public async Task<ActionResult<RefreshTokenDTO>> Login(UserDTO request)
         {
             var result = await _userService.Login(request, Response);
             return result.Result;
